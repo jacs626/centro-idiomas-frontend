@@ -3,19 +3,15 @@ import { api } from './index';
 export interface Course {
   id: number;
   name: string;
-  description?: string;
   level: string;
-  price: number;
-  duration: number;
+  description?: string;
   createdAt?: string;
 }
 
 export interface CreateCourseDto {
   name: string;
-  description?: string;
   level: string;
-  price: number;
-  duration: number;
+  description: string;
 }
 
 export const coursesApi = {

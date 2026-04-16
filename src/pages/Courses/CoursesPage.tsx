@@ -14,10 +14,8 @@ export default function CoursesPage() {
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [formData, setFormData] = useState({
     name: '',
-    description: '',
     level: 'A1',
-    price: 0,
-    duration: 0,
+    description: '',
   });
 
   const { canManageCourses, isAdmin } = useAuth();
@@ -47,7 +45,7 @@ export default function CoursesPage() {
       }
       setShowForm(false);
       setEditingCourse(null);
-      setFormData({ name: '', description: '', level: 'A1', price: 0, duration: 0 });
+      setFormData({ name: '', level: 'A1', description: '' });
       loadCourses();
     } catch (error) {
       console.error('Error saving course:', error);
@@ -58,10 +56,8 @@ export default function CoursesPage() {
     setEditingCourse(course);
     setFormData({
       name: course.name,
-      description: course.description || '',
       level: course.level,
-      price: course.price,
-      duration: course.duration,
+      description: course.description || '',
     });
     setShowForm(true);
   };
@@ -80,16 +76,6 @@ export default function CoursesPage() {
   const columns = [
     { key: 'name', header: 'Nombre' },
     { key: 'level', header: 'Nivel', render: (c: Course) => <Badge variant="info">{c.level}</Badge> },
-    { 
-      key: 'price', 
-      header: 'Precio', 
-      render: (c: Course) => c.price != null ? `$${c.price.toLocaleString()}` : '-' 
-    },
-    { 
-      key: 'duration', 
-      header: 'Duración', 
-      render: (c: Course) => c.duration != null ? `${c.duration} meses` : '-' 
-    },
     ...(canManageCourses ? [{
       key: 'actions',
       header: 'Acciones',
@@ -112,7 +98,7 @@ export default function CoursesPage() {
           </p>
         </div>
         {canManageCourses && (
-          <Button onClick={() => { setShowForm(true); setEditingCourse(null); setFormData({ name: '', description: '', level: 'A1', price: 0, duration: 0 }); }}>
+          <Button onClick={() => { setShowForm(true); setEditingCourse(null); setFormData({ name: '', level: 'A1', description: '' }); }}>
             + Nuevo Curso
           </Button>
         )}
@@ -132,6 +118,7 @@ export default function CoursesPage() {
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                  placeholder="ej: A1 Speaking"
                   required
                 />
               </div>
@@ -149,26 +136,6 @@ export default function CoursesPage() {
                   <option value="C1">C1 - Avanzado</option>
                   <option value="C2">C2 - Maestría</option>
                 </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Precio</label>
-                <input
-                  type="number"
-                  value={formData.price}
-                  onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Duración (meses)</label>
-                <input
-                  type="number"
-                  value={formData.duration}
-                  onChange={(e) => setFormData({ ...formData, duration: Number(e.target.value) })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                  required
-                />
               </div>
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-slate-700 mb-1">Descripción</label>

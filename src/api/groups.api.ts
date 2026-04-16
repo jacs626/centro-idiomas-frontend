@@ -4,6 +4,7 @@ export interface Group {
   id: number;
   name: string;
   courseId: number;
+  teacherId: number;
   schedule: string;
   maxStudents: number;
   startDate: string;
@@ -13,10 +14,11 @@ export interface Group {
 export interface CreateGroupDto {
   name: string;
   courseId: number;
+  teacherId: number;
   schedule: string;
   maxStudents: number;
   startDate: string;
-  endDate?: string;
+  endDate: string;
 }
 
 export const groupsApi = {

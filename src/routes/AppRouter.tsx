@@ -3,6 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import LoginPage from "../pages/Login/LoginPage";
 import DashboardPage from "../pages/Dashboard/DashboardPage";
 import CoursesPage from "../pages/Courses/CoursesPage";
+import GroupsPage from "../pages/Groups/GroupsPage";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { token, isLoading } = useAuth();
@@ -44,6 +45,14 @@ const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <CoursesPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/groups",
+    element: (
+      <ProtectedRoute>
+        <GroupsPage />
       </ProtectedRoute>
     ),
   },
