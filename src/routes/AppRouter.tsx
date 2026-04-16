@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import LoginPage from "../pages/Login/LoginPage";
 import DashboardPage from "../pages/Dashboard/DashboardPage";
+import CoursesPage from "../pages/Courses/CoursesPage";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { token, isLoading } = useAuth();
@@ -35,6 +36,14 @@ const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <DashboardPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/courses",
+    element: (
+      <ProtectedRoute>
+        <CoursesPage />
       </ProtectedRoute>
     ),
   },

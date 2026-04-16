@@ -1,10 +1,12 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { authApi } from '../api/auth.api';
 
+export type UserRole = 'admin' | 'profesor' | 'alumno';
+
 interface User {
   id: number;
   email: string;
-  role: string;
+  role: UserRole;
   name?: string;
 }
 
@@ -14,6 +16,11 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
+  isAdmin: boolean;
+  isProfesor: boolean;
+  isAlumno: boolean;
+  canManageCourses: boolean;
+  canManageGroups: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -27,6 +34,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const storedToken = localStorage.getItem('token');
     if (storedToken) {
       setToken(storedToken);
+      try {
+        const payload = JSON.parse(atob(storedToken.split('.')[1]));
+        setUser({ id: payload.sub, email: payload.email, role: payload.role as UserRole });
+      } catch {
+        localStorage.removeItem('token');
+        setToken(null);
+      }
     }
     setIsLoading(false);
   }, []);
@@ -39,7 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(accessToken);
     
     const payload = JSON.parse(atob(accessToken.split('.')[1]));
-    setUser({ id: payload.sub, email: payload.email, role: payload.role });
+    setUser({ id: payload.sub, email: payload.email, role: payload.role as UserRole });
   };
 
   const logout = () => {
@@ -48,8 +62,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  const isAdmin = user?.role === 'admin';
+  const isProfesor = user?.role === 'profesor';
+  const isAlumno = user?.role === 'alumno';
+  const canManageCourses = isAdmin;
+  const canManageGroups = isAdmin;
+
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      token, 
+      login, 
+      logout, 
+      isLoading,
+      isAdmin,
+      isProfesor,
+      isAlumno,
+      canManageCourses,
+      canManageGroups,
+    }}>
       {children}
     </AuthContext.Provider>
   );
