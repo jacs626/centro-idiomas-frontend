@@ -5,8 +5,6 @@ export interface Group {
   name: string;
   courseId: number;
   teacherId: number;
-  schedule: string;
-  maxStudents: number;
   startDate: string;
   endDate?: string;
 }
@@ -15,8 +13,6 @@ export interface CreateGroupDto {
   name: string;
   courseId: number;
   teacherId: number;
-  schedule: string;
-  maxStudents: number;
   startDate: string;
   endDate: string;
 }

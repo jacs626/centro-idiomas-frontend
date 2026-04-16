@@ -16,9 +16,6 @@ export default function GroupsPage() {
   const [formData, setFormData] = useState({
     name: '',
     courseId: 0,
-    teacherId: 1,
-    schedule: '',
-    maxStudents: 20,
     startDate: '',
     endDate: '',
   });
@@ -47,14 +44,21 @@ export default function GroupsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const data = {
+        name: formData.name,
+        courseId: formData.courseId,
+        teacherId: 1,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+      };
       if (editingGroup) {
-        await groupsApi.update(editingGroup.id, formData);
+        await groupsApi.update(editingGroup.id, data);
       } else {
-        await groupsApi.create(formData);
+        await groupsApi.create(data);
       }
       setShowForm(false);
       setEditingGroup(null);
-      setFormData({ name: '', courseId: 0, teacherId: 1, schedule: '', maxStudents: 20, startDate: '', endDate: '' });
+      setFormData({ name: '', courseId: 0, startDate: '', endDate: '' });
       loadData();
     } catch (error) {
       console.error('Error saving group:', error);
@@ -66,9 +70,6 @@ export default function GroupsPage() {
     setFormData({
       name: group.name,
       courseId: group.courseId,
-      teacherId: group.teacherId,
-      schedule: group.schedule || '',
-      maxStudents: group.maxStudents,
       startDate: group.startDate ? group.startDate.split('T')[0] : '',
       endDate: group.endDate ? group.endDate.split('T')[0] : '',
     });
@@ -93,26 +94,9 @@ export default function GroupsPage() {
 
   const columns = [
     { key: 'name', header: 'Nombre' },
-    { 
-      key: 'courseId', 
-      header: 'Curso', 
-      render: (g: Group) => getCourseName(g.courseId)
-    },
-    { 
-      key: 'schedule', 
-      header: 'Horario',
-      render: (g: Group) => g.schedule || '-'
-    },
-    { 
-      key: 'maxStudents', 
-      header: 'Cupo',
-      render: (g: Group) => `${g.maxStudents} alum.` 
-    },
-    { 
-      key: 'startDate', 
-      header: 'Inicio',
-      render: (g: Group) => g.startDate ? new Date(g.startDate).toLocaleDateString('es-MX') : '-'
-    },
+    { key: 'courseId', header: 'Curso', render: (g: Group) => getCourseName(g.courseId) },
+    { key: 'startDate', header: 'Inicio', render: (g: Group) => g.startDate ? new Date(g.startDate).toLocaleDateString('es-MX') : '-' },
+    { key: 'endDate', header: 'Fin', render: (g: Group) => g.endDate ? new Date(g.endDate).toLocaleDateString('es-MX') : '-' },
     ...(canManageGroups ? [{
       key: 'actions',
       header: 'Acciones',
@@ -135,7 +119,7 @@ export default function GroupsPage() {
           </p>
         </div>
         {canManageGroups && (
-          <Button onClick={() => { setShowForm(true); setEditingGroup(null); setFormData({ name: '', courseId: courses[0]?.id || 0, teacherId: 1, schedule: '', maxStudents: 20, startDate: '', endDate: '' }); }}>
+          <Button onClick={() => { setShowForm(true); setEditingGroup(null); setFormData({ name: '', courseId: courses[0]?.id || 0, startDate: '', endDate: '' }); }}>
             + Nuevo Grupo
           </Button>
         )}
@@ -172,26 +156,6 @@ export default function GroupsPage() {
                     <option key={course.id} value={course.id}>{course.name} ({course.level})</option>
                   ))}
                 </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Horario</label>
-                <input
-                  type="text"
-                  value={formData.schedule}
-                  onChange={(e) => setFormData({ ...formData, schedule: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                  placeholder="ej: Lun-Mié 10:00-12:00"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Cupo máximo</label>
-                <input
-                  type="number"
-                  value={formData.maxStudents}
-                  onChange={(e) => setFormData({ ...formData, maxStudents: Number(e.target.value) })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                  min={1}
-                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Fecha de inicio</label>
