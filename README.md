@@ -53,14 +53,22 @@ src/
 - `/dashboard` - Dashboard
 - `/courses` - Cursos (profesor solo ve los suyos)
 - `/groups` - Grupos (profesor solo los suyos, admin crea con selección de profesor)
-- `/enrollments` - Matrículas (filtros: curso → grupo, crear requiere curso → grupo)
+- `/enrollments` - Matrículas (filtros: curso → grupo, crear requiere curso → grupo, **admin puede editar progreso manualmente**)
 - `/attendance` - Asistencia (filtros: curso → grupo)
 - `/payments` - Pagos (admin: filtros curso → grupo → estado; alumno: solo propios)
-- `/certificates` - Certificados (filtros: curso → grupo)
+- `/certificates` - Certificados (filtros: curso → grupo, eligibility basada en ≥80% progreso)
 - `/reports` - Reportes (filtros: curso → grupo)
 - `/users` - Usuarios (CRUD, filtros por rol)
 - `/profile` - Perfil
 - `/notifications` - Notificaciones (solo icono)
+
+## 🔧 Funcionalidades Especiales
+
+### Simulación de Progreso (Admin)
+El admin puede editar manualmente el progreso de cualquier matrícula en la página de Matrículas:
+- Click en la barra de progreso → input editable
+- Permite simular el avance del alumno para pruebas
+- Al alcanzar ≥80% el alumno se vuelve elegible para certificado
 
 ## ⚙️ Instalación
 
