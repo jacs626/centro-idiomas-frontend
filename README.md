@@ -29,19 +29,21 @@ src/
 
 ## 👥 Roles
 
-| Rol | Acceso |
-|-----|-------|
-| **admin** | Dashboard, Cursos, Grupos, Matrículas, Asistencia, Pagos, Certificados, Reportes |
-| **profesor** | Grupos, Alumnos, Asistencia, Certificados, Reportes |
-| **alumno** | Dashboard, Mis Cursos, Asistencia, Pagos, Certificados, Perfil |
+| Rol          | Acceso                                                                           |
+| ------------ | -------------------------------------------------------------------------------- |
+| **admin**    | Dashboard, Cursos, Grupos, Matrículas, Asistencia, Pagos, Certificados, Reportes |
+| **profesor** | Grupos, Alumnos, Asistencia, Certificados, Reportes                              |
+| **alumno**   | Dashboard, Mis Cursos, Asistencia, Pagos, Certificados, Perfil                   |
 
 ## 📱 Páginas
 
 ### Auth
+
 - `/login` - Iniciar sesión
 - `/register` - Registro
 
 ### Públicas/Protegidas
+
 - `/dashboard` - Dashboard
 - `/courses` - Cursos
 - `/groups` - Grupos
@@ -51,6 +53,7 @@ src/
 - `/certificates` - Certificados
 - `/reports` - Reportes
 - `/profile` - Perfil
+- `/notifications` - Notificaciones
 
 ## ⚙️ Instalación
 
