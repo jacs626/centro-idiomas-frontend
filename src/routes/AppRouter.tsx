@@ -13,6 +13,7 @@ import CertificatesPage from "../pages/Certificates/CertificatesPage";
 import AdminCertificatesPage from "../pages/Certificates/AdminCertificatesPage";
 import ReportsPage from "../pages/Reports/ReportsPage";
 import NotificationsPage from "../pages/Notifications/NotificationsPage";
+import UsersPage from "../pages/Users/UsersPage";
 
 function AdminReportsRedirect() {
   const { isAdmin } = useAuth();
@@ -140,6 +141,14 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <NotificationsPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/users",
+    element: (
+      <ProtectedRoute>
+        <UsersPage />
       </ProtectedRoute>
     ),
   },
