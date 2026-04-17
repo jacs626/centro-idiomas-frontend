@@ -71,7 +71,7 @@ export default function GroupsPage() {
       }
       setShowForm(false);
       setEditingGroup(null);
-      setFormData({ name: '', courseId: 0, startDate: '', endDate: '' });
+      setFormData({ name: '', courseId: 0, teacherId: 0, startDate: '', endDate: '' });
       loadData();
     } catch (error) {
       console.error('Error saving group:', error);
@@ -83,6 +83,7 @@ export default function GroupsPage() {
     setFormData({
       name: group.name,
       courseId: group.courseId,
+      teacherId: group.teacherId,
       startDate: group.startDate ? group.startDate.split('T')[0] : '',
       endDate: group.endDate ? group.endDate.split('T')[0] : '',
     });
@@ -132,7 +133,7 @@ export default function GroupsPage() {
           </p>
         </div>
         {canManageGroups && (
-          <Button onClick={() => { setShowForm(true); setEditingGroup(null); setFormData({ name: '', courseId: courses[0]?.id || 0, startDate: '', endDate: '' }); }}>
+          <Button onClick={() => { setShowForm(true); setEditingGroup(null); setFormData({ name: '', courseId: courses[0]?.id || 0, teacherId: teachers[0]?.id || 0, startDate: '', endDate: '' }); }}>
             + Nuevo Grupo
           </Button>
         )}

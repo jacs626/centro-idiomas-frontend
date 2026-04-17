@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
-import { reportsApi, type GroupsSummary, type GroupReport, type ReportSummary } from '../../api/reports.api';
+import { reportsApi, type GroupReport, type ReportSummary } from '../../api/reports.api';
 import { groupsApi, type Group } from '../../api/groups.api';
 import { coursesApi, type Course } from '../../api/courses.api';
 import { Card, CardContent } from '../../components/ui/Card';
-import { Badge } from '../../components/ui/Badge';
 import Navbar from '../../components/layout/Navbar';
 
 function ProgressBar({ value, max = 100, color = 'bg-indigo-500' }: { value: number; max?: number; color?: string }) {
@@ -17,7 +16,6 @@ function ProgressBar({ value, max = 100, color = 'bg-indigo-500' }: { value: num
 
 export default function ReportsPage() {
   const [summary, setSummary] = useState<ReportSummary | null>(null);
-  const [groupsSummary, setGroupsSummary] = useState<GroupsSummary[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [allGroups, setAllGroups] = useState<Group[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<number | ''>('');
@@ -40,14 +38,12 @@ export default function ReportsPage() {
   const loadData = async () => {
     try {
       setIsLoading(true);
-      const [summaryRes, groupsSummaryRes, coursesRes, groupsRes] = await Promise.all([
+      const [summaryRes, coursesRes, groupsRes] = await Promise.all([
         reportsApi.getSummary(),
-        reportsApi.getGroupsSummary(),
         coursesApi.getAll(),
         groupsApi.getAll(),
       ]);
       setSummary(summaryRes.data);
-      setGroupsSummary(groupsSummaryRes.data);
       setCourses(coursesRes.data);
       setAllGroups(groupsRes.data);
     } catch (error) {

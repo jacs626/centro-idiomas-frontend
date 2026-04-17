@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { certificatesApi, type Certificate } from '../../api/certificates.api';
+import { certificatesApi } from '../../api/certificates.api';
 import { groupsApi, type Group } from '../../api/groups.api';
 import { coursesApi, type Course } from '../../api/courses.api';
 import { enrollmentsApi, type Enrollment } from '../../api/enrollments.api';
@@ -65,22 +65,25 @@ export default function AdminCertificatesPage() {
       setIsLoading(true);
       let enrollData: EnrollmentWithDetails[];
       
-      const [enrollRes, groupsRes, certsRes] = await Promise.all([
+      const [enrollRes, groupsRes, coursesRes, certsRes] = await Promise.all([
         enrollmentsApi.getAll(),
         groupsApi.getAll(),
+        coursesApi.getAll(),
         certificatesApi.getAll(),
       ]);
       
       setAllGroups(groupsRes.data);
+      setCourses(coursesRes.data);
       
       const certEnrollmentIds = new Set(certsRes.data.map(c => c.enrollmentId));
       
       const allEnrollments = enrollRes.data.map(e => {
         const group = groupsRes.data.find(g => g.id === e.groupId);
+        const course = coursesRes.data.find(c => c.id === group?.courseId);
         return {
           ...e,
-          courseName: group?.course?.name || '',
-          courseLevel: group?.course?.level || '',
+          courseName: course?.name || '',
+          courseLevel: course?.level || '',
           groupName: group?.name || '',
           hasCertificate: certEnrollmentIds.has(e.id),
         };
@@ -125,15 +128,6 @@ export default function AdminCertificatesPage() {
       alert(message);
       console.error('Error generating certificate:', error);
     }
-  };
-
-  const formatDate = (date: string) => {
-    if (!date) return '-';
-    return new Date(date).toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
   };
 
   const columns = [
