@@ -10,6 +10,7 @@ import ProfilePage from "../pages/Profile/ProfilePage";
 import PaymentsPage from "../pages/Payments/PaymentsPage";
 import CertificatesPage from "../pages/Certificates/CertificatesPage";
 import AdminCertificatesPage from "../pages/Certificates/AdminCertificatesPage";
+import ReportsPage from "../pages/Reports/ReportsPage";
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { token, isLoading } = useAuth();
@@ -82,7 +83,7 @@ export const router = createBrowserRouter([
     path: "/reports",
     element: (
       <ProtectedRoute>
-        <DashboardPage />
+        <ReportsPage />
       </ProtectedRoute>
     ),
   },
