@@ -22,3 +22,5 @@ export * from './courses.api';
 export * from './groups.api';
 export * from './enrollments.api';
 export * from './payments.api';
+export * from './users.api';
+export * from './attendance.api';

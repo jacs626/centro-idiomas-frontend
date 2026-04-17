@@ -4,8 +4,11 @@ import LoginPage from "../pages/Login/LoginPage";
 import DashboardPage from "../pages/Dashboard/DashboardPage";
 import CoursesPage from "../pages/Courses/CoursesPage";
 import GroupsPage from "../pages/Groups/GroupsPage";
+import EnrollmentsPage from "../pages/Enrollments/EnrollmentsPage";
+import AttendancePage from "../pages/Attendance/AttendancePage";
+import ProfilePage from "../pages/Profile/ProfilePage";
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { token, isLoading } = useAuth();
 
   if (isLoading) return <div>Cargando...</div>;
@@ -14,7 +17,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function PublicRoute({ children }: { children: React.ReactNode }) {
+export function PublicRoute({ children }: { children: React.ReactNode }) {
   const { token, isLoading } = useAuth();
 
   if (isLoading) return <div>Cargando...</div>;
@@ -23,7 +26,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-const router = createBrowserRouter([
+export const router = createBrowserRouter([
   {
     path: "/login",
     element: (
@@ -57,9 +60,47 @@ const router = createBrowserRouter([
     ),
   },
   {
+    path: "/enrollments",
+    element: (
+      <ProtectedRoute>
+        <EnrollmentsPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/payments",
+    element: (
+      <ProtectedRoute>
+        <EnrollmentsPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/reports",
+    element: (
+      <ProtectedRoute>
+        <DashboardPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/attendance",
+    element: (
+      <ProtectedRoute>
+        <AttendancePage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/profile",
+    element: (
+      <ProtectedRoute>
+        <ProfilePage />
+      </ProtectedRoute>
+    ),
+  },
+  {
     path: "/",
     element: <Navigate to="/login" />,
   },
 ]);
-
-export default router;

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { coursesApi, type Course } from '../../api/courses.api';
+import { enrollmentsApi } from '../../api/enrollments.api';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -7,8 +8,14 @@ import { Table } from '../../components/ui/Table';
 import { useAuth } from '../../context/AuthContext';
 import Navbar from '../../components/layout/Navbar';
 
+interface CourseWithProgress extends Course {
+  progress?: number;
+  status?: string;
+  groupName?: string;
+}
+
 export default function CoursesPage() {
-  const [courses, setCourses] = useState<Course[]>([]);
+  const [courses, setCourses] = useState<CourseWithProgress[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
@@ -18,18 +25,46 @@ export default function CoursesPage() {
     description: '',
   });
 
-  const { canManageCourses, isAdmin } = useAuth();
+  const { canManageCourses, isAdmin, isAlumno, user } = useAuth();
 
   useEffect(() => {
-    loadCourses();
+    loadData();
   }, []);
 
-  const loadCourses = async () => {
+  const loadData = async () => {
     try {
-      const response = await coursesApi.getAll();
-      setCourses(response.data);
+      let coursesWithProgress: CourseWithProgress[] = [];
+
+      if (isAlumno && user) {
+        console.log('Cargando progreso para usuario:', user.id);
+        
+        const myProgress = await enrollmentsApi.getMyProgress();
+        console.log('My progress:', myProgress.data);
+        
+        const coursesRes = await coursesApi.getAll();
+        
+        coursesWithProgress = coursesRes.data.map(course => {
+          const enrollment = myProgress.data.find((e: any) => e.courseId === course.id);
+          if (enrollment) {
+            return {
+              ...course,
+              progress: enrollment.progress,
+              status: enrollment.status,
+              groupName: enrollment.group,
+            };
+          }
+          return course;
+        });
+        
+        console.log('Courses with progress:', coursesWithProgress);
+      } else {
+        const coursesRes = await coursesApi.getAll();
+        coursesWithProgress = coursesRes.data;
+      }
+
+      setCourses(coursesWithProgress);
     } catch (error) {
-      console.error('Error loading courses:', error);
+      console.error('Error loading data:', error);
     } finally {
       setIsLoading(false);
     }
@@ -46,7 +81,7 @@ export default function CoursesPage() {
       setShowForm(false);
       setEditingCourse(null);
       setFormData({ name: '', level: 'A1', description: '' });
-      loadCourses();
+      loadData();
     } catch (error) {
       console.error('Error saving course:', error);
     }
@@ -66,12 +101,112 @@ export default function CoursesPage() {
     if (confirm('¿Estás seguro de eliminar este curso?')) {
       try {
         await coursesApi.delete(id);
-        loadCourses();
+        loadData();
       } catch (error) {
         console.error('Error deleting course:', error);
       }
     }
   };
+
+  const statusColors: Record<string, 'success' | 'info' | 'danger'> = {
+    active: 'success',
+    completed: 'info',
+    dropped: 'danger',
+  };
+
+  const statusLabels: Record<string, string> = {
+    active: 'Activo',
+    completed: 'Completado',
+    dropped: 'Retirado',
+  };
+
+  if (isAlumno) {
+    const enrolledCourses = courses.filter(c => c.progress !== undefined);
+    const availableCourses = courses.filter(c => c.progress === undefined);
+
+    return (
+      <Navbar>
+        <div className="mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Mis Cursos</h1>
+          <p className="text-slate-500 mt-1">Tu progreso en cada curso</p>
+        </div>
+
+        {enrolledCourses.length > 0 && (
+          <>
+            <h2 className="text-lg font-semibold text-slate-800 mb-4">Cursos en progreso</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+              {enrolledCourses.map((c) => (
+                <Card key={c.id} hover padding="md">
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <h3 className="font-semibold text-slate-800">{c.name}</h3>
+                      <p className="text-sm text-slate-500">{c.level}</p>
+                    </div>
+                    {c.status && <Badge variant={statusColors[c.status]}>{statusLabels[c.status]}</Badge>}
+                  </div>
+                  
+                  {c.groupName && (
+                    <p className="text-sm text-slate-600 mb-3">Grupo: {c.groupName}</p>
+                  )}
+                  
+                  {c.progress !== undefined && (
+                    <div>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="text-slate-600">Progreso</span>
+                        <span className="font-medium text-slate-800">{c.progress}%</span>
+                      </div>
+                      <div className="w-full h-3 bg-slate-200 rounded-full overflow-hidden">
+                        <div 
+                          className={`h-full rounded-full transition-all ${
+                            c.progress >= 80 ? 'bg-emerald-500' : 
+                            c.progress >= 50 ? 'bg-amber-500' : 'bg-indigo-500'
+                          }`}
+                          style={{ width: `${c.progress}%` }}
+                        />
+                      </div>
+                      {c.progress >= 80 && c.status === 'active' && (
+                        <p className="text-xs text-emerald-600 font-medium mt-2">
+                          ✓ Puedes solicitar tu certificado
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </Card>
+              ))}
+            </div>
+          </>
+        )}
+
+        {availableCourses.length > 0 && (
+          <>
+            <h2 className="text-lg font-semibold text-slate-800 mb-4">Cursos disponibles</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {availableCourses.map((c) => (
+                <Card key={c.id} padding="md">
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <h3 className="font-semibold text-slate-800">{c.name}</h3>
+                      <p className="text-sm text-slate-500">{c.level}</p>
+                    </div>
+                    <Badge variant="info">{c.level}</Badge>
+                  </div>
+                  {c.description && (
+                    <p className="text-sm text-slate-500 mt-2">{c.description}</p>
+                  )}
+                </Card>
+              ))}
+            </div>
+          </>
+        )}
+
+        {courses.length === 0 && (
+          <Card padding="md">
+            <p className="text-slate-500 text-center">No hay cursos disponibles</p>
+          </Card>
+        )}
+      </Navbar>
+    );
+  }
 
   const columns = [
     { key: 'name', header: 'Nombre' },
@@ -94,7 +229,7 @@ export default function CoursesPage() {
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Cursos</h1>
           <p className="text-slate-500 mt-1">
-            {isAdmin ? 'Gestiona todos los cursos del centro' : 'Cursos en los que estás inscrito'}
+            {isAdmin ? 'Gestiona todos los cursos del centro' : 'Cursos disponibles'}
           </p>
         </div>
         {canManageCourses && (
