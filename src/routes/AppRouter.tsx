@@ -99,7 +99,7 @@ export const router = createBrowserRouter([
     path: "/reports",
     element: (
       <ProtectedRoute>
-        <ReportsPage />
+        <AdminReportsRedirect />
       </ProtectedRoute>
     ),
   },
@@ -140,14 +140,6 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <NotificationsPage />
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: "/reports",
-    element: (
-      <ProtectedRoute>
-        <AdminReportsRedirect />
       </ProtectedRoute>
     ),
   },

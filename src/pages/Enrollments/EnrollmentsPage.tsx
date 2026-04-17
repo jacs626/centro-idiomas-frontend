@@ -53,6 +53,7 @@ export default function EnrollmentsPage() {
     userId: 0,
     groupId: 0,
   });
+  const [formCourseId, setFormCourseId] = useState<number | ''>('');
   const [filterGroup, setFilterGroup] = useState<number | ''>('');
   const [filterCourse, setFilterCourse] = useState<number | ''>('');
 
@@ -296,7 +297,7 @@ export default function EnrollmentsPage() {
             </p>
           </div>
           {canManageGroups && (
-            <Button onClick={() => { setShowForm(true); setFormData({ userId: 0, groupId: 0 }); }}>
+            <Button onClick={() => { setShowForm(true); setFormData({ userId: 0, groupId: 0 }); setFormCourseId(''); }}>
               + Nueva Matrícula
             </Button>
           )}
@@ -306,7 +307,7 @@ export default function EnrollmentsPage() {
           <div className="flex flex-col sm:flex-row gap-3">
             <select
               value={filterCourse}
-              onChange={(e) => setFilterCourse(e.target.value ? Number(e.target.value) : '')}
+              onChange={(e) => { setFilterCourse(e.target.value ? Number(e.target.value) : ''); setFilterGroup(''); }}
               className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm"
             >
               <option value="">Todos los cursos</option>
@@ -317,7 +318,8 @@ export default function EnrollmentsPage() {
             <select
               value={filterGroup}
               onChange={(e) => setFilterGroup(e.target.value ? Number(e.target.value) : '')}
-              className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm"
+              disabled={!filterCourse}
+              className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm disabled:opacity-50"
             >
               <option value="">Todos los grupos</option>
               {groups.filter(g => !filterCourse || g.courseId === filterCourse).map(g => (
@@ -350,21 +352,36 @@ export default function EnrollmentsPage() {
                 </select>
               </div>
               <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Curso</label>
+                <select
+                  value={formCourseId}
+                  onChange={(e) => { setFormCourseId(e.target.value ? Number(e.target.value) : ''); setFormData({ ...formData, groupId: 0 }); }}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                  required
+                >
+                  <option value="">Selecciona un curso</option>
+                  {courses.map(c => (
+                    <option key={c.id} value={c.id}>{c.name} ({c.level})</option>
+                  ))}
+                </select>
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Grupo</label>
                 <select
                   value={formData.groupId}
                   onChange={(e) => setFormData({ ...formData, groupId: Number(e.target.value) })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                  disabled={!formCourseId}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none disabled:opacity-50"
                   required
                 >
                   <option value={0}>Selecciona un grupo</option>
-                  {groups.map(g => (
+                  {groups.filter(g => !formCourseId || g.courseId === formCourseId).map(g => (
                     <option key={g.id} value={g.id}>{g.name}</option>
                   ))}
                 </select>
               </div>
               <div className="md:col-span-2 flex gap-2 justify-end">
-                <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>
+                <Button type="button" variant="secondary" onClick={() => { setShowForm(false); setFormCourseId(''); }}>
                   Cancelar
                 </Button>
                 <Button type="submit">

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { certificatesApi, type Certificate } from '../../api/certificates.api';
 import { groupsApi, type Group } from '../../api/groups.api';
+import { coursesApi, type Course } from '../../api/courses.api';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Table } from '../../components/ui/Table';
@@ -9,26 +10,41 @@ import Navbar from '../../components/layout/Navbar';
 
 export default function AdminCertificatesPage() {
   const [certificates, setCertificates] = useState<Certificate[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [allGroups, setAllGroups] = useState<Group[]>([]);
-  const [filteredGroups, setFilteredGroups] = useState<Group[]>([]);
+  const [selectedCourse, setSelectedCourse] = useState<number | ''>('');
   const [selectedGroup, setSelectedGroup] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const { isAdmin, isProfesor, user } = useAuth();
+  const { isAdmin } = useAuth();
 
   useEffect(() => {
     loadData();
   }, [selectedGroup]);
 
   useEffect(() => {
-    if (allGroups.length > 0) {
-      if (isProfesor && user) {
-        setFilteredGroups(allGroups.filter(g => g.teacherId === user.id));
-      } else {
-        setFilteredGroups(allGroups);
-      }
+    if (allGroups.length > 0 && isAdmin) {
+      loadCourses();
     }
-  }, [allGroups, isProfesor, user]);
+  }, [allGroups, isAdmin]);
+
+  const loadCourses = async () => {
+    try {
+      const coursesRes = await coursesApi.getAll();
+      setCourses(coursesRes.data);
+    } catch (error) {
+      console.error('Error loading courses:', error);
+    }
+  };
+
+  const handleCourseChange = (courseId: string) => {
+    setSelectedCourse(courseId ? Number(courseId) : '');
+    setSelectedGroup(null);
+  };
+
+  const filteredGroups = selectedCourse 
+    ? allGroups.filter(g => g.courseId === selectedCourse)
+    : allGroups;
 
   const loadData = async () => {
     try {
@@ -38,10 +54,6 @@ export default function AdminCertificatesPage() {
       if (selectedGroup) {
         const response = await certificatesApi.getByGroup(selectedGroup);
         certs = response.data;
-      } else if (isProfesor && user) {
-        const myGroupIds = allGroups.filter(g => g.teacherId === user.id).map(g => g.id);
-        const response = await certificatesApi.getAll();
-        certs = response.data.filter((c: Certificate) => c.enrollment?.groupId && myGroupIds.includes(c.enrollment.groupId));
       } else {
         const response = await certificatesApi.getAll();
         certs = response.data;
@@ -128,12 +140,23 @@ export default function AdminCertificatesPage() {
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Certificados</h1>
           <p className="text-slate-500 mt-1">Gestiona los certificados de los alumnos</p>
         </div>
-        {(isAdmin || isProfesor) && (
+        {(isAdmin) && (
           <div className="flex gap-2">
+            <select
+              value={selectedCourse}
+              onChange={(e) => handleCourseChange(e.target.value)}
+              className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+            >
+              <option value="">Todos los cursos</option>
+              {courses.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
             <select
               value={selectedGroup || ''}
               onChange={(e) => setSelectedGroup(e.target.value ? Number(e.target.value) : null)}
-              className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+              disabled={!selectedCourse}
+              className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none disabled:opacity-50"
             >
               <option value="">Todos los grupos</option>
               {filteredGroups.map(g => (

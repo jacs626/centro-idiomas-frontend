@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { attendanceApi, type AttendanceWithCourse } from '../../api/attendance.api';
 import { groupsApi, type Group } from '../../api/groups.api';
+import { coursesApi, type Course } from '../../api/courses.api';
 import { Card, CardContent } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { useAuth } from '../../context/AuthContext';
@@ -30,7 +31,9 @@ interface StudentAttendance {
 export default function AttendancePage() {
   const navigate = useNavigate();
   const [attendanceData, setAttendanceData] = useState<AttendanceWithCourse[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
+  const [selectedCourse, setSelectedCourse] = useState<number | ''>('');
   const [selectedGroup, setSelectedGroup] = useState<number | ''>('');
   const [studentAttendance, setStudentAttendance] = useState<StudentAttendance[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<number | null>(null);
@@ -54,6 +57,9 @@ export default function AttendancePage() {
         const res = await attendanceApi.getMyAttendance();
         setAttendanceData(res.data || []);
       } else if (isAdmin || isProfesor) {
+        const coursesRes = await coursesApi.getAll();
+        setCourses(coursesRes.data);
+        
         const groupsRes = await groupsApi.getAll();
         const myGroups = isProfesor && user 
           ? groupsRes.data.filter((g: any) => g.teacherId === user.id)
@@ -66,6 +72,15 @@ export default function AttendancePage() {
       setIsLoading(false);
     }
   };
+
+  const handleCourseChange = (courseId: string) => {
+    setSelectedCourse(courseId ? Number(courseId) : '');
+    setSelectedGroup('');
+  };
+
+  const filteredGroups = selectedCourse 
+    ? groups.filter(g => g.courseId === selectedCourse)
+    : groups;
 
   const loadGroupAttendance = async () => {
     try {
@@ -194,14 +209,25 @@ export default function AttendancePage() {
           <p className="text-slate-500 mt-1">Registro de asistencia por grupo</p>
         </div>
 
-        <div className="mb-6">
+        <div className="mb-6 flex flex-wrap gap-4">
+          <select
+            value={selectedCourse}
+            onChange={(e) => handleCourseChange(e.target.value)}
+            className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+          >
+            <option value="">Selecciona un curso</option>
+            {courses.map(c => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
           <select
             value={selectedGroup}
             onChange={(e) => { setSelectedGroup(e.target.value ? Number(e.target.value) : ''); setSelectedStudent(null); }}
-            className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+            disabled={!selectedCourse}
+            className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none disabled:opacity-50"
           >
             <option value="">Selecciona un grupo</option>
-            {groups.map(g => (
+            {filteredGroups.map(g => (
               <option key={g.id} value={g.id}>{g.name}</option>
             ))}
           </select>

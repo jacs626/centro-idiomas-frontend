@@ -7,15 +7,23 @@ import { Table } from '../../components/ui/Table';
 import { useAuth } from '../../context/AuthContext';
 import Navbar from '../../components/layout/Navbar';
 
+interface Teacher {
+  id: number;
+  name: string;
+  email: string;
+}
+
 export default function GroupsPage() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     courseId: 0,
+    teacherId: 0,
     startDate: '',
     endDate: '',
   });
@@ -34,6 +42,11 @@ export default function GroupsPage() {
       ]);
       setGroups(groupsRes.data);
       setCourses(coursesRes.data);
+      
+      if (isAdmin) {
+        const teachersRes = await groupsApi.getTeachers();
+        setTeachers(teachersRes.data);
+      }
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -154,6 +167,20 @@ export default function GroupsPage() {
                   <option value="">Selecciona un curso</option>
                   {courses.map(course => (
                     <option key={course.id} value={course.id}>{course.name} ({course.level})</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Profesor</label>
+                <select
+                  value={formData.teacherId}
+                  onChange={(e) => setFormData({ ...formData, teacherId: Number(e.target.value) })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                  required
+                >
+                  <option value="">Selecciona un profesor</option>
+                  {teachers.map(teacher => (
+                    <option key={teacher.id} value={teacher.id}>{teacher.name}</option>
                   ))}
                 </select>
               </div>

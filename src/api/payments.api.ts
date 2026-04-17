@@ -38,7 +38,13 @@ export interface CreatePaymentDto {
 }
 
 export const paymentsApi = {
-  getAll: () => api.get<Payment[]>('/payments'),
+  getAll: (filters?: { userId?: number; groupId?: number; status?: string }) => {
+    const params = new URLSearchParams();
+    if (filters?.userId) params.append('userId', filters.userId.toString());
+    if (filters?.groupId) params.append('groupId', filters.groupId.toString());
+    if (filters?.status) params.append('status', filters.status);
+    return api.get<Payment[]>(`/payments?${params.toString()}`);
+  },
   getById: (id: number) => api.get<Payment>(`/payments/${id}`),
   getByUser: (userId: number) => api.get<Payment[]>(`/payments/by-user?userId=${userId}`),
   getMyPayments: () => api.get<Payment[]>('/payments/my-payments'),

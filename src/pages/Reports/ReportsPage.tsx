@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { reportsApi, type GroupsSummary, type GroupReport, type ReportSummary } from '../../api/reports.api';
 import { groupsApi, type Group } from '../../api/groups.api';
+import { coursesApi, type Course } from '../../api/courses.api';
 import { Card, CardContent } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import Navbar from '../../components/layout/Navbar';
@@ -17,7 +18,9 @@ function ProgressBar({ value, max = 100, color = 'bg-indigo-500' }: { value: num
 export default function ReportsPage() {
   const [summary, setSummary] = useState<ReportSummary | null>(null);
   const [groupsSummary, setGroupsSummary] = useState<GroupsSummary[]>([]);
-  const [groups, setGroups] = useState<Group[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [allGroups, setAllGroups] = useState<Group[]>([]);
+  const [selectedCourse, setSelectedCourse] = useState<number | ''>('');
   const [selectedGroup, setSelectedGroup] = useState<number | null>(null);
   const [groupReport, setGroupReport] = useState<GroupReport | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -29,20 +32,24 @@ export default function ReportsPage() {
   useEffect(() => {
     if (selectedGroup) {
       loadGroupReport(selectedGroup);
+    } else {
+      setGroupReport(null);
     }
   }, [selectedGroup]);
 
   const loadData = async () => {
     try {
       setIsLoading(true);
-      const [summaryRes, groupsSummaryRes, groupsRes] = await Promise.all([
+      const [summaryRes, groupsSummaryRes, coursesRes, groupsRes] = await Promise.all([
         reportsApi.getSummary(),
         reportsApi.getGroupsSummary(),
+        coursesApi.getAll(),
         groupsApi.getAll(),
       ]);
       setSummary(summaryRes.data);
       setGroupsSummary(groupsSummaryRes.data);
-      setGroups(groupsRes.data);
+      setCourses(coursesRes.data);
+      setAllGroups(groupsRes.data);
     } catch (error) {
       console.error('Error loading reports:', error);
     } finally {
@@ -58,6 +65,15 @@ export default function ReportsPage() {
       console.error('Error loading group report:', error);
     }
   };
+
+  const handleCourseChange = (courseId: string) => {
+    setSelectedCourse(courseId ? Number(courseId) : '');
+    setSelectedGroup(null);
+};
+
+  const filteredGroups = selectedCourse 
+    ? allGroups.filter(g => g.courseId === selectedCourse)
+    : allGroups;
 
   const formatPercent = (value: number) => `${Math.round(value)}%`;
   const formatCurrency = (value: number) =>
@@ -139,48 +155,32 @@ export default function ReportsPage() {
         </Card>
       </div>
 
-      {/* 👨‍🎓 ALUMNOS POR GRUPO */}
-      <Card>
-        <CardContent>
-          <h2 className="text-lg font-semibold text-slate-800 mb-4">Alumnos por Grupo</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {groupsSummary.map((g) => (
-              <div key={g.groupId} className="p-4 bg-slate-50 rounded-lg">
-                <div className="font-semibold text-slate-800">{g.groupName}</div>
-                <div className="text-sm text-slate-500 mb-2">{g.courseName}</div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="default">{g.total} alum.</Badge>
-                  <span className="text-sm text-slate-500">
-                    Ret: {formatPercent(g.retention)}
-                  </span>
-                </div>
-                <div className="mt-2">
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="text-slate-500">Progreso</span>
-                    <span className="font-medium">{formatPercent(g.avgProgress)}</span>
-                  </div>
-                  <ProgressBar value={g.avgProgress} color="bg-indigo-500" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
       {/* 📅 SELECCIONAR GRUPO PARA REPORTE DETALLADO */}
       <Card className="mt-6">
         <CardContent>
           <h2 className="text-lg font-semibold text-slate-800 mb-4">Reporte por Grupo</h2>
-          <select
-            value={selectedGroup || ''}
-            onChange={(e) => setSelectedGroup(e.target.value ? Number(e.target.value) : null)}
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none mb-4"
-          >
-            <option value="">Selecciona un grupo</option>
-            {groups.map((g) => (
-              <option key={g.id} value={g.id}>{g.name}</option>
-            ))}
-          </select>
+          <div className="flex flex-wrap gap-4 mb-4">
+            <select
+              value={selectedCourse}
+              onChange={(e) => handleCourseChange(e.target.value)}
+              className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+            >
+              <option value="">Todos los cursos</option>
+              {courses.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+            <select
+              value={selectedGroup || ''}
+              onChange={(e) => setSelectedGroup(e.target.value ? Number(e.target.value) : null)}
+              className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+            >
+              <option value="">Selecciona un grupo</option>
+              {filteredGroups.map((g) => (
+                <option key={g.id} value={g.id}>{g.name}</option>
+              ))}
+            </select>
+          </div>
 
           {groupReport && (
             <div className="space-y-4">

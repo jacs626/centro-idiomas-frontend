@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { paymentsApi, type Payment } from '../../api/payments.api';
+import { groupsApi, type Group } from '../../api/groups.api';
+import { coursesApi, type Course } from '../../api/courses.api';
 import { Card, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -21,13 +23,44 @@ const statusLabels: Record<string, string> = {
 
 export default function PaymentsPage() {
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [filters, setFilters] = useState({ courseId: '', groupId: '', status: '' });
 
-  const { isAdmin, isProfesor, isAlumno, user } = useAuth();
+  const { isAdmin, isAlumno, user } = useAuth();
 
   useEffect(() => {
     loadData();
-  }, []);
+    if (isAdmin) loadCourses();
+  }, [filters]);
+
+  const loadCourses = async () => {
+    try {
+      const response = await coursesApi.getAll();
+      setCourses(response.data);
+    } catch (error) {
+      console.error('Error loading courses:', error);
+    }
+  };
+
+  const loadGroups = async (courseId: number) => {
+    try {
+      const response = await groupsApi.getByCourse(courseId);
+      setGroups(response.data);
+    } catch (error) {
+      console.error('Error loading groups:', error);
+    }
+  };
+
+  const handleCourseChange = (courseId: string) => {
+    setFilters(prev => ({ ...prev, courseId, groupId: '' }));
+    if (courseId) {
+      loadGroups(Number(courseId));
+    } else {
+      setGroups([]);
+    }
+  };
 
   const loadData = async () => {
     try {
@@ -36,8 +69,11 @@ export default function PaymentsPage() {
       if (isAlumno && user) {
         const response = await paymentsApi.getMyPayments();
         paymentsData = response.data;
-      } else if (isAdmin || isProfesor) {
-        const response = await paymentsApi.getAll();
+      } else if (isAdmin) {
+        const filterParams: any = {};
+        if (filters.groupId) filterParams.groupId = Number(filters.groupId);
+        if (filters.status) filterParams.status = filters.status;
+        const response = await paymentsApi.getAll(filterParams);
         paymentsData = response.data;
       } else {
         paymentsData = [];
@@ -49,6 +85,10 @@ export default function PaymentsPage() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleFilterChange = (key: string, value: string) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
   };
 
   const handleMarkAsPaid = async (id: number) => {
@@ -177,7 +217,7 @@ export default function PaymentsPage() {
         </Badge>
       )
     },
-    ...((isAdmin || isProfesor) ? [{
+    ...((isAdmin) ? [{
       key: 'actions',
       header: 'Acciones',
       render: (p: Payment) => (
@@ -196,10 +236,55 @@ export default function PaymentsPage() {
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Pagos</h1>
           <p className="text-slate-500 mt-1">
-            {isAdmin || isProfesor ? 'Gestiona los pagos de los alumnos' : 'Tus pagos'}
+            {isAdmin ? 'Gestiona los pagos de los alumnos' : 'Tus pagos'}
           </p>
         </div>
       </div>
+
+      {isAdmin && (
+        <div className="flex flex-wrap gap-4 mb-4 p-4 bg-white rounded-lg border border-slate-200">
+          <div>
+            <label className="block text-xs text-slate-500 mb-1">Curso</label>
+            <select
+              value={filters.courseId}
+              onChange={(e) => handleCourseChange(e.target.value)}
+              className="px-3 py-2 border border-slate-300 rounded-md text-sm"
+            >
+              <option value="">Todos los cursos</option>
+              {courses.map(course => (
+                <option key={course.id} value={course.id}>{course.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-slate-500 mb-1">Grupo</label>
+            <select
+              value={filters.groupId}
+              onChange={(e) => handleFilterChange('groupId', e.target.value)}
+              disabled={!filters.courseId}
+              className="px-3 py-2 border border-slate-300 rounded-md text-sm disabled:opacity-50"
+            >
+              <option value="">Todos los grupos</option>
+              {groups.map(group => (
+                <option key={group.id} value={group.id}>{group.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-slate-500 mb-1">Estado</label>
+            <select
+              value={filters.status}
+              onChange={(e) => handleFilterChange('status', e.target.value)}
+              className="px-3 py-2 border border-slate-300 rounded-md text-sm"
+            >
+              <option value="">Todos</option>
+              <option value="pending">Pendiente</option>
+              <option value="paid">Pagado</option>
+              <option value="late">Vencido</option>
+            </select>
+          </div>
+        </div>
+      )}
 
       <Card padding="none">
         <Table columns={columns} data={payments} isLoading={isLoading} emptyMessage="No hay pagos" />
