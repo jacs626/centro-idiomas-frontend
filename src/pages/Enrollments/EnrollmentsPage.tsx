@@ -56,6 +56,7 @@ export default function EnrollmentsPage() {
   const [formCourseId, setFormCourseId] = useState<number | ''>('');
   const [filterGroup, setFilterGroup] = useState<number | ''>('');
   const [filterCourse, setFilterCourse] = useState<number | ''>('');
+  const [editingProgress, setEditingProgress] = useState<{id: number, progress: number} | null>(null);
 
   const { canManageGroups, isAdmin, isProfesor, user, isAlumno } = useAuth();
 
@@ -179,6 +180,16 @@ export default function EnrollmentsPage() {
     }
   };
 
+  const handleUpdateProgress = async (id: number, progress: number) => {
+    try {
+      await enrollmentsApi.update(id, { progress });
+      setEditingProgress(null);
+      loadData();
+    } catch (error) {
+      console.error('Error updating progress:', error);
+    }
+  };
+
   const getUserName = (userId: number) => {
     const u = users.find(user => user.id === userId);
     return u ? u.name : `Usuario #${userId}`;
@@ -249,12 +260,36 @@ export default function EnrollmentsPage() {
       key: 'progress', 
       header: 'Progreso', 
       render: (e: EnrollmentWithDetails) => (
-        <div className="flex items-center gap-2">
-          <div className="w-16 h-2 bg-slate-200 rounded-full overflow-hidden">
-            <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${e.progress}%` }} />
+        isAdmin ? (
+          editingProgress?.id === e.id ? (
+            <div className="flex items-center gap-1">
+              <input 
+                type="number" 
+                min="0" 
+                max="100"
+                value={editingProgress.progress}
+                onChange={(ev) => setEditingProgress({ ...editingProgress, progress: Number(ev.target.value) })}
+                className="w-14 px-1 py-0.5 border rounded text-sm"
+              />
+              <Button size="sm" variant="ghost" onClick={() => handleUpdateProgress(e.id, editingProgress.progress)}>✓</Button>
+              <Button size="sm" variant="ghost" onClick={() => setEditingProgress(null)}>✕</Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 cursor-pointer" onClick={() => setEditingProgress({ id: e.id, progress: e.progress })}>
+              <div className="w-16 h-2 bg-slate-200 rounded-full overflow-hidden">
+                <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${e.progress}%` }} />
+              </div>
+              <span className="text-sm">{e.progress}%</span>
+            </div>
+          )
+        ) : (
+          <div className="flex items-center gap-2">
+            <div className="w-16 h-2 bg-slate-200 rounded-full overflow-hidden">
+              <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${e.progress}%` }} />
+            </div>
+            <span className="text-sm">{e.progress}%</span>
           </div>
-          <span className="text-sm">{e.progress}%</span>
-        </div>
+        )
       )
     },
     { 

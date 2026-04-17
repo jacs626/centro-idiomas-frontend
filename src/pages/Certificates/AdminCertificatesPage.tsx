@@ -2,14 +2,28 @@ import { useState, useEffect } from 'react';
 import { certificatesApi, type Certificate } from '../../api/certificates.api';
 import { groupsApi, type Group } from '../../api/groups.api';
 import { coursesApi, type Course } from '../../api/courses.api';
+import { enrollmentsApi, type Enrollment } from '../../api/enrollments.api';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Table } from '../../components/ui/Table';
+import { Badge } from '../../components/ui/Badge';
 import { useAuth } from '../../context/AuthContext';
 import Navbar from '../../components/layout/Navbar';
 
+interface EnrollmentWithDetails extends Enrollment {
+  courseName: string;
+  courseLevel: string;
+  groupName: string;
+  hasCertificate: boolean;
+  user?: {
+    id: number;
+    name: string;
+    email: string;
+  };
+}
+
 export default function AdminCertificatesPage() {
-  const [certificates, setCertificates] = useState<Certificate[]>([]);
+  const [enrollments, setEnrollments] = useState<EnrollmentWithDetails[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [allGroups, setAllGroups] = useState<Group[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<number | ''>('');
@@ -49,24 +63,38 @@ export default function AdminCertificatesPage() {
   const loadData = async () => {
     try {
       setIsLoading(true);
-      let certs: Certificate[];
+      let enrollData: EnrollmentWithDetails[];
+      
+      const [enrollRes, groupsRes, certsRes] = await Promise.all([
+        enrollmentsApi.getAll(),
+        groupsApi.getAll(),
+        certificatesApi.getAll(),
+      ]);
+      
+      setAllGroups(groupsRes.data);
+      
+      const certEnrollmentIds = new Set(certsRes.data.map(c => c.enrollmentId));
+      
+      const allEnrollments = enrollRes.data.map(e => {
+        const group = groupsRes.data.find(g => g.id === e.groupId);
+        return {
+          ...e,
+          courseName: group?.course?.name || '',
+          courseLevel: group?.course?.level || '',
+          groupName: group?.name || '',
+          hasCertificate: certEnrollmentIds.has(e.id),
+        };
+      });
       
       if (selectedGroup) {
-        const response = await certificatesApi.getByGroup(selectedGroup);
-        certs = response.data;
+        enrollData = allEnrollments.filter(e => e.groupId === selectedGroup);
       } else {
-        const response = await certificatesApi.getAll();
-        certs = response.data;
+        enrollData = allEnrollments;
       }
       
-      setCertificates(certs);
-      
-      if (allGroups.length === 0) {
-        const groupsRes = await groupsApi.getAll();
-        setAllGroups(groupsRes.data);
-      }
+      setEnrollments(enrollData);
     } catch (error) {
-      console.error('Error loading certificates:', error);
+      console.error('Error loading data:', error);
     } finally {
       setIsLoading(false);
     }
@@ -81,7 +109,9 @@ export default function AdminCertificatesPage() {
       if (link) {
         link.focus();
       }
-    } catch (error) {
+    } catch (error: any) {
+      const message = error?.response?.data?.message || 'Error downloading certificate';
+      alert(message);
       console.error('Error downloading certificate:', error);
     }
   };
@@ -90,7 +120,9 @@ export default function AdminCertificatesPage() {
     try {
       await handleDownload(enrollmentId);
       loadData();
-    } catch (error) {
+    } catch (error: any) {
+      const message = error?.response?.data?.message || 'Error generating certificate';
+      alert(message);
       console.error('Error generating certificate:', error);
     }
   };
@@ -104,31 +136,35 @@ export default function AdminCertificatesPage() {
     });
   };
 
-  const getCourseName = (cert: Certificate) => {
-    return cert.enrollment?.group?.course?.name || 'Sin curso';
-  };
-
-  const getGroupName = (cert: Certificate) => {
-    return cert.enrollment?.group?.name || `Grupo #${cert.enrollment?.groupId}`;
-  };
-
-  const getStudentName = (cert: Certificate) => {
-    return cert.enrollment?.user?.name || `Alumno #${cert.enrollment?.userId}`;
-  };
-
   const columns = [
-    { key: 'student', header: 'Alumno', render: (c: Certificate) => getStudentName(c) },
-    { key: 'course', header: 'Curso', render: (c: Certificate) => getCourseName(c) },
-    { key: 'group', header: 'Grupo', render: (c: Certificate) => getGroupName(c) },
-    { key: 'progress', header: 'Progreso', render: (c: Certificate) => `${c.enrollment?.progress || 0}%` },
-    { key: 'issuedAt', header: 'Fecha', render: (c: Certificate) => formatDate(c.issuedAt) },
+    { key: 'user', header: 'Alumno', render: (e: EnrollmentWithDetails) => e.user?.name || `Alumno #${e.userId}` },
+    { key: 'course', header: 'Curso', render: (e: EnrollmentWithDetails) => `${e.courseName} (${e.courseLevel})` },
+    { key: 'group', header: 'Grupo', render: (e: EnrollmentWithDetails) => e.groupName },
+    { key: 'progress', header: 'Progreso', render: (e: EnrollmentWithDetails) => `${e.progress}%` },
+    { 
+      key: 'eligible', 
+      header: 'Estado', 
+      render: (e: EnrollmentWithDetails) => (
+        e.progress >= 80 ? (
+          e.hasCertificate ? (
+            <Badge variant="success">Certificado generado</Badge>
+          ) : (
+            <Badge variant="warning">Elegible (≥80%)</Badge>
+          )
+        ) : (
+          <Badge variant="default">No elegible</Badge>
+        )
+      )
+    },
     { 
       key: 'actions', 
       header: 'Acción',
-      render: (c: Certificate) => (
-        <Button variant="secondary" size="sm" onClick={() => handleGenerate(c.enrollmentId)}>
-          Descargar
-        </Button>
+      render: (e: EnrollmentWithDetails) => (
+        e.progress >= 80 ? (
+          <Button variant="secondary" size="sm" onClick={() => handleGenerate(e.id)}>
+            {e.hasCertificate ? 'Descargar' : 'Generar'}
+          </Button>
+        ) : null
       ),
     },
   ];
@@ -168,7 +204,7 @@ export default function AdminCertificatesPage() {
       </div>
 
       <Card padding="none">
-        <Table columns={columns} data={certificates} isLoading={isLoading} emptyMessage="No hay certificados" />
+        <Table columns={columns} data={enrollments} isLoading={isLoading} emptyMessage="No hay matrículas" />
       </Card>
     </Navbar>
   );
