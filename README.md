@@ -32,8 +32,14 @@ src/
 | Rol          | Acceso                                                                           |
 | ------------ | -------------------------------------------------------------------------------- |
 | **admin**    | Dashboard, Cursos, Grupos, Matrículas, Asistencia, Pagos, Certificados, Reportes |
-| **profesor** | Grupos, Alumnos, Asistencia, Certificados, Reportes                              |
+| **profesor** | Dashboard, Cursos, Grupos, Asistencia, Certificados                              |
 | **alumno**   | Dashboard, Mis Cursos, Asistencia, Pagos, Certificados, Perfil                   |
+
+## 🔒 Permisos por Rol
+
+- **Admin**: Acceso total a todos los módulos
+- **Profesor**: Solo ve sus propios grupos/cursos/alumnos. Sin acceso a pagos ni reportes
+- **Alumno**: Solo ve sus propios datos (cursos, pagos, certificados, asistencia)
 
 ## 📱 Páginas
 
@@ -45,13 +51,13 @@ src/
 ### Públicas/Protegidas
 
 - `/dashboard` - Dashboard
-- `/courses` - Cursos
-- `/groups` - Grupos
-- `/enrollments` - Matrículas
-- `/attendance` - Asistencia
-- `/payments` - Pagos
-- `/certificates` - Certificados
-- `/reports` - Reportes
+- `/courses` - Cursos (profesor solo ve los suyos)
+- `/groups` - Grupos (profesor solo los suyos, admin crea con selección de profesor)
+- `/enrollments` - Matrículas (filtros: curso → grupo, crear requiere curso → grupo)
+- `/attendance` - Asistencia (filtros: curso → grupo)
+- `/payments` - Pagos (admin: filtros curso → grupo → estado; alumno: solo propios)
+- `/certificates` - Certificados (filtros: curso → grupo)
+- `/reports` - Reportes (filtros: curso → grupo)
 - `/profile` - Perfil
 - `/notifications` - Notificaciones
 

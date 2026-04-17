@@ -78,10 +78,12 @@ function AlumnoDashboard() {
   useEffect(() => {
     async function loadData() {
       try {
-        const [enrollRes, payRes] = await Promise.all([
-          enrollmentsApi.getMyProgress(),
-          user ? paymentsApi.getByUser(user.id) : Promise.resolve({ data: [] }),
-        ]);
+        console.log('Cargando enrollments...');
+        const enrollRes = await enrollmentsApi.getMyProgress();
+        console.log('Enrollments response:', enrollRes);
+        console.log('Enrollments data:', enrollRes.data);
+        const payRes = await paymentsApi.getMyPayments();
+        console.log('Payments response:', payRes);
         setEnrollments(enrollRes.data || []);
         setPayments(payRes.data || []);
       } catch (error) {
@@ -91,7 +93,7 @@ function AlumnoDashboard() {
       }
     }
     loadData();
-  }, [user]);
+  }, []);
 
   const activeCourses = enrollments.filter(e => e.status === "active");
   const completedCourses = enrollments.filter(e => e.status === "completed");
