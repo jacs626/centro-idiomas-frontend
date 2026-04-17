@@ -9,15 +9,26 @@ import Navbar from '../../components/layout/Navbar';
 
 export default function AdminCertificatesPage() {
   const [certificates, setCertificates] = useState<Certificate[]>([]);
-  const [groups, setGroups] = useState<Group[]>([]);
+  const [allGroups, setAllGroups] = useState<Group[]>([]);
+  const [filteredGroups, setFilteredGroups] = useState<Group[]>([]);
   const [selectedGroup, setSelectedGroup] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const { isAdmin, isProfesor } = useAuth();
+  const { isAdmin, isProfesor, user } = useAuth();
 
   useEffect(() => {
     loadData();
   }, [selectedGroup]);
+
+  useEffect(() => {
+    if (allGroups.length > 0) {
+      if (isProfesor && user) {
+        setFilteredGroups(allGroups.filter(g => g.teacherId === user.id));
+      } else {
+        setFilteredGroups(allGroups);
+      }
+    }
+  }, [allGroups, isProfesor, user]);
 
   const loadData = async () => {
     try {
@@ -27,6 +38,10 @@ export default function AdminCertificatesPage() {
       if (selectedGroup) {
         const response = await certificatesApi.getByGroup(selectedGroup);
         certs = response.data;
+      } else if (isProfesor && user) {
+        const myGroupIds = allGroups.filter(g => g.teacherId === user.id).map(g => g.id);
+        const response = await certificatesApi.getAll();
+        certs = response.data.filter((c: Certificate) => c.enrollment?.groupId && myGroupIds.includes(c.enrollment.groupId));
       } else {
         const response = await certificatesApi.getAll();
         certs = response.data;
@@ -34,9 +49,9 @@ export default function AdminCertificatesPage() {
       
       setCertificates(certs);
       
-      if (groups.length === 0) {
+      if (allGroups.length === 0) {
         const groupsRes = await groupsApi.getAll();
-        setGroups(groupsRes.data);
+        setAllGroups(groupsRes.data);
       }
     } catch (error) {
       console.error('Error loading certificates:', error);
@@ -121,7 +136,7 @@ export default function AdminCertificatesPage() {
               className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
             >
               <option value="">Todos los grupos</option>
-              {groups.map(g => (
+              {filteredGroups.map(g => (
                 <option key={g.id} value={g.id}>{g.name}</option>
               ))}
             </select>

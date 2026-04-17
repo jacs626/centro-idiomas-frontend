@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { coursesApi, type Course } from '../../api/courses.api';
 import { enrollmentsApi } from '../../api/enrollments.api';
+import { coursesApi, type Course } from '../../api/courses.api';
+import { groupsApi } from '../../api/groups.api';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -25,7 +26,7 @@ export default function CoursesPage() {
     description: '',
   });
 
-  const { canManageCourses, isAdmin, isAlumno, user } = useAuth();
+  const { canManageCourses, isAdmin, isProfesor, isAlumno, user } = useAuth();
 
   useEffect(() => {
     loadData();
@@ -36,11 +37,7 @@ export default function CoursesPage() {
       let coursesWithProgress: CourseWithProgress[] = [];
 
       if (isAlumno && user) {
-        console.log('Cargando progreso para usuario:', user.id);
-        
         const myProgress = await enrollmentsApi.getMyProgress();
-        console.log('My progress:', myProgress.data);
-        
         const coursesRes = await coursesApi.getAll();
         
         coursesWithProgress = coursesRes.data.map(course => {
@@ -55,9 +52,20 @@ export default function CoursesPage() {
           }
           return course;
         });
+      } else if (isProfesor && user) {
+        const groupsRes = await groupsApi.getAll();
+        const myGroups = groupsRes.data.filter((g: any) => g.teacherId === user.id);
         
-        console.log('Courses with progress:', coursesWithProgress);
-      } else {
+        const coursesRes = await coursesApi.getAll();
+        const teacherCourses = coursesRes.data.filter((c: any) => 
+          myGroups.some((g: any) => g.courseId === c.id)
+        );
+        
+        coursesWithProgress = teacherCourses.map(course => {
+          const group = myGroups.find((g: any) => g.courseId === course.id);
+          return { ...course, groupName: group?.name };
+        });
+      } else if (isAdmin) {
         const coursesRes = await coursesApi.getAll();
         coursesWithProgress = coursesRes.data;
       }

@@ -14,6 +14,12 @@ import AdminCertificatesPage from "../pages/Certificates/AdminCertificatesPage";
 import ReportsPage from "../pages/Reports/ReportsPage";
 import NotificationsPage from "../pages/Notifications/NotificationsPage";
 
+function AdminReportsRedirect() {
+  const { isAdmin } = useAuth();
+  if (!isAdmin) return <Navigate to="/dashboard" />;
+  return <ReportsPage />;
+}
+
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { token, isLoading } = useAuth();
 
@@ -134,6 +140,14 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <NotificationsPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/reports",
+    element: (
+      <ProtectedRoute>
+        <AdminReportsRedirect />
       </ProtectedRoute>
     ),
   },
