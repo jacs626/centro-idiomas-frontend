@@ -58,8 +58,9 @@ src/
 - `/payments` - Pagos (admin: filtros curso → grupo → estado; alumno: solo propios)
 - `/certificates` - Certificados (filtros: curso → grupo)
 - `/reports` - Reportes (filtros: curso → grupo)
+- `/users` - Usuarios (CRUD, filtros por rol)
 - `/profile` - Perfil
-- `/notifications` - Notificaciones
+- `/notifications` - Notificaciones (solo icono)
 
 ## ⚙️ Instalación
 
