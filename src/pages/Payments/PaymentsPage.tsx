@@ -90,11 +90,11 @@ export default function PaymentsPage() {
   if (isAlumno && payments.length > 0) {
     const totalPending = payments
       .filter(p => p.status === 'pending' || p.status === 'late')
-      .reduce((sum, p) => sum + p.amount, 0);
+      .reduce((sum, p) => sum + Number(p.amount || 0), 0);
 
     const totalPaid = payments
       .filter(p => p.status === 'paid')
-      .reduce((sum, p) => sum + p.amount, 0);
+      .reduce((sum, p) => sum + Number(p.amount || 0), 0);
 
     return (
       <Navbar>

@@ -208,7 +208,7 @@ function AlumnoDashboard() {
               <div key={idx} className="flex justify-between items-center p-3 bg-amber-50 rounded-lg">
                 <div>
                   <h3 className="font-medium text-slate-800">{payment.description || "Pago"}</h3>
-                  <p className="text-sm text-slate-500">${payment.amount}</p>
+                  <p className="text-sm text-slate-500">${Number(payment.amount)}</p>
                 </div>
                 <Badge variant="warning">Pendiente</Badge>
               </div>

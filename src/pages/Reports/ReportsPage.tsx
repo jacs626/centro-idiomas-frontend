@@ -61,7 +61,7 @@ export default function ReportsPage() {
 
   const formatPercent = (value: number) => `${Math.round(value)}%`;
   const formatCurrency = (value: number) =>
-    new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'USD' }).format(value);
+    new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'USD' }).format(Number(value) || 0);
 
   if (isLoading || !summary) {
     return (
