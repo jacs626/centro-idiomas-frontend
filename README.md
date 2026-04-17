@@ -2,6 +2,35 @@
 
 Aplicación web React para la gestión académica de un centro de idiomas.
 
+## 🌐 Demo en Producción
+
+🔗 Frontend:
+https://centro-idiomas-frontend.vercel.app
+🔗 Backend API:
+https://centro-idiomas-backend.onrender.com
+
+## 🔐 Credenciales de Prueba
+
+Admin:
+admin@test.com / 123456
+
+Profesor:
+profe1@test.com / 123456
+
+Alumno:
+alumno1@test.com / 123456
+
+## ⚡ Endpoints para Test Rápido
+
+POST /auth/login
+GET /courses
+GET /enrollments/my-progress
+GET /reports/summary
+
+## 🧪 Nota
+
+El sistema cuenta con datos precargados mediante seed para facilitar la evaluación.
+
 ## 🛠️ Tecnologías
 
 - **React 18** - UI
@@ -65,7 +94,9 @@ src/
 ## 🔧 Funcionalidades Especiales
 
 ### Simulación de Progreso (Admin)
+
 El admin puede editar manualmente el progreso de cualquier matrícula en la página de Matrículas:
+
 - Click en la barra de progreso → input editable
 - Permite simular el avance del alumno para pruebas
 - Al alcanzar ≥80% el alumno se vuelve elegible para certificado
