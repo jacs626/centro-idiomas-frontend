@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import LoginPage from "../pages/Login/LoginPage";
+import LoginPage from "../pages/auth/LoginPage";
+import RegisterPage from "../pages/auth/RegisterPage";
 import DashboardPage from "../pages/Dashboard/DashboardPage";
 import CoursesPage from "../pages/Courses/CoursesPage";
 import GroupsPage from "../pages/Groups/GroupsPage";
@@ -36,6 +37,14 @@ export const router = createBrowserRouter([
     element: (
       <PublicRoute>
         <LoginPage />
+      </PublicRoute>
+    ),
+  },
+  {
+    path: "/register",
+    element: (
+      <PublicRoute>
+        <RegisterPage />
       </PublicRoute>
     ),
   },

@@ -1,0 +1,16 @@
+{
+  "name": "Centro de Idiomas Global",
+  "short_name": "Centro Idiomas",
+  "description": "Sistema de gestión para centro de idiomas",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4f46e5",
+  "icons": [
+    {
+      "src": "/vite.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

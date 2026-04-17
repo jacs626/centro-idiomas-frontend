@@ -1,26 +1,34 @@
-import { useState } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { api } from '../../api';
 
-export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+interface RegisterData {
+  email: string;
+  password: string;
+  name: string;
+  role: string;
+}
+
+export default function RegisterPage() {
+  const [formData, setFormData] = useState<RegisterData>({
+    email: '',
+    password: '',
+    name: '',
+    role: 'alumno',
+  });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
     try {
-      await login(email, password);
-      navigate('/dashboard');
-    } catch (err: unknown) {
-      const message = err && typeof err === 'object' && 'response' in err 
-        ? (err as { response: { data: { message?: string } } }).response?.data?.message ?? 'Credenciales inválidas'
-        : 'Error al iniciar sesión';
+      await api.post('/auth/register', formData);
+      navigate('/login');
+    } catch (err: any) {
+      const message = err?.response?.data?.message || 'Error al registrar';
       setError(message);
     } finally {
       setIsLoading(false);
@@ -38,10 +46,14 @@ export default function LoginPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
             </svg>
           </div>
-          <h1 className="text-4xl font-bold mb-4 text-center">Centro de Idiomas Global</h1>
-          <p className="text-lg text-white/80 text-center max-w-md">Sistema de gestión integral para tu centro de idiomas</p>
+          <h1 className="text-4xl font-bold mb-4 text-center">Únete al Centro de Idiomas</h1>
+          <p className="text-lg text-white/80 text-center max-w-md">Crea tu cuenta para comenzar a aprender</p>
           
-          <div className="mt-12 flex gap-8 text-white/60">
+          <div className="mt-12 grid grid-cols-3 gap-6 text-white/60">
+            <div className="text-center">
+              <p className="text-2xl font-bold text-white">20+</p>
+              <p className="text-sm">Idiomas</p>
+            </div>
             <div className="text-center">
               <p className="text-2xl font-bold text-white">100+</p>
               <p className="text-sm">Cursos</p>
@@ -49,10 +61,6 @@ export default function LoginPage() {
             <div className="text-center">
               <p className="text-2xl font-bold text-white">500+</p>
               <p className="text-sm">Estudiantes</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-white">20+</p>
-              <p className="text-sm">Profesores</p>
             </div>
           </div>
         </div>
@@ -63,13 +71,13 @@ export default function LoginPage() {
           <div className="lg:hidden flex flex-col items-center mb-8">
             <div className="w-14 h-14 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center mb-4">
               <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
               </svg>
             </div>
           </div>
 
-          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">Bienvenido</h2>
-          <p className="text-slate-500 mb-6 sm:mb-8 text-sm sm:text-base">Ingresa tus credenciales para acceder</p>
+          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">Crear Cuenta</h2>
+          <p className="text-slate-500 mb-6 sm:mb-8 text-sm sm:text-base">Ingresa tus datos para registrarte</p>
 
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
@@ -84,6 +92,25 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Nombre completo</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                  <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none text-sm sm:text-base"
+                  placeholder="Juan Pérez"
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">Correo electrónico</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
@@ -93,8 +120,8 @@ export default function LoginPage() {
                 </div>
                 <input
                   type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none text-sm sm:text-base"
                   placeholder="correo@ejemplo.com"
                   required
@@ -112,8 +139,8 @@ export default function LoginPage() {
                 </div>
                 <input
                   type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none text-sm sm:text-base"
                   placeholder="••••••••"
                   required
@@ -132,18 +159,18 @@ export default function LoginPage() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  <span className="text-sm">Ingresando...</span>
+                  <span className="text-sm">Registrando...</span>
                 </span>
               ) : (
-                'Iniciar Sesión'
+                'Crear Cuenta'
               )}
             </button>
           </form>
 
           <p className="mt-8 text-center text-sm text-slate-500">
-            ¿Sin acceso?{' '}
-            <a href="#" className="text-indigo-600 hover:text-indigo-700 font-medium">
-              Contacta al administrador
+            ¿Ya tienes cuenta?{' '}
+            <a href="/login" className="text-indigo-600 hover:text-indigo-700 font-medium">
+              Iniciar Sesión
             </a>
           </p>
         </div>
