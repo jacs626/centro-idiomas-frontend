@@ -7,6 +7,7 @@ import GroupsPage from "../pages/Groups/GroupsPage";
 import EnrollmentsPage from "../pages/Enrollments/EnrollmentsPage";
 import AttendancePage from "../pages/Attendance/AttendancePage";
 import ProfilePage from "../pages/Profile/ProfilePage";
+import PaymentsPage from "../pages/Payments/PaymentsPage";
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { token, isLoading } = useAuth();
@@ -71,7 +72,7 @@ export const router = createBrowserRouter([
     path: "/payments",
     element: (
       <ProtectedRoute>
-        <EnrollmentsPage />
+        <PaymentsPage />
       </ProtectedRoute>
     ),
   },

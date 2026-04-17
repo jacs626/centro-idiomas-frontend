@@ -2,24 +2,48 @@ import { api } from './index';
 
 export interface Payment {
   id: number;
-  studentId: number;
+  enrollmentId: number;
   amount: number;
-  method: 'cash' | 'card' | 'transfer' | 'mp';
-  status: 'pending' | 'completed' | 'failed';
-  date: string;
+  type: string;
+  status: 'pending' | 'paid' | 'late';
+  dueDate: string;
+  paidAt: string | null;
+  enrollment?: {
+    id: number;
+    userId: number;
+    groupId: number;
+    group?: {
+      id: number;
+      name: string;
+      course?: {
+        id: number;
+        name: string;
+        level: string;
+      };
+    };
+    user?: {
+      id: number;
+      name: string;
+    };
+  };
 }
 
 export interface CreatePaymentDto {
-  studentId: number;
+  enrollmentId: number;
   amount: number;
-  method: 'cash' | 'card' | 'transfer' | 'mp';
+  type: string;
+  status: string;
+  dueDate: string;
+  paidAt?: string;
 }
 
 export const paymentsApi = {
   getAll: () => api.get<Payment[]>('/payments'),
   getById: (id: number) => api.get<Payment>(`/payments/${id}`),
   getByUser: (userId: number) => api.get<Payment[]>(`/payments/by-user?userId=${userId}`),
+  getMyPayments: () => api.get<Payment[]>('/payments/my-payments'),
   create: (data: CreatePaymentDto) => api.post<Payment>('/payments', data),
+  markAsPaid: (id: number) => api.patch<Payment>(`/payments/${id}/pay`),
   update: (id: number, data: Partial<CreatePaymentDto>) => api.patch<Payment>(`/payments/${id}`, data),
   delete: (id: number) => api.delete(`/payments/${id}`),
 };
