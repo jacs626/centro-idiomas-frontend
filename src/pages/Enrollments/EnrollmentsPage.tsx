@@ -3,6 +3,7 @@ import { enrollmentsApi, type Enrollment, type CreateEnrollmentDto } from '../..
 import { groupsApi, type Group } from '../../api/groups.api';
 import { coursesApi, type Course } from '../../api/courses.api';
 import { usersApi } from '../../api/users.api';
+import { certificatesApi } from '../../api/certificates.api';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -168,9 +169,14 @@ export default function EnrollmentsPage() {
               
               {e.progress >= 80 && e.status === 'active' && (
                 <div className="mt-3 pt-3 border-t border-slate-100">
-                  <p className="text-xs text-emerald-600 font-medium">
-                    ✓ Puedes solicitar tu certificado
-                  </p>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    className="w-full text-emerald-600 hover:text-emerald-700"
+                    onClick={() => certificatesApi.viewCertificate(e.id)}
+                  >
+                    Ver certificado
+                  </Button>
                 </div>
               )}
             </Card>

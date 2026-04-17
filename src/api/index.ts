@@ -24,3 +24,4 @@ export * from './enrollments.api';
 export * from './payments.api';
 export * from './users.api';
 export * from './attendance.api';
+export * from './certificates.api';

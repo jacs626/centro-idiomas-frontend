@@ -8,6 +8,8 @@ import EnrollmentsPage from "../pages/Enrollments/EnrollmentsPage";
 import AttendancePage from "../pages/Attendance/AttendancePage";
 import ProfilePage from "../pages/Profile/ProfilePage";
 import PaymentsPage from "../pages/Payments/PaymentsPage";
+import CertificatesPage from "../pages/Certificates/CertificatesPage";
+import AdminCertificatesPage from "../pages/Certificates/AdminCertificatesPage";
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { token, isLoading } = useAuth();
@@ -97,6 +99,22 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <ProfilePage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/certificates",
+    element: (
+      <ProtectedRoute>
+        <CertificatesPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/admin-certificates",
+    element: (
+      <ProtectedRoute>
+        <AdminCertificatesPage />
       </ProtectedRoute>
     ),
   },
