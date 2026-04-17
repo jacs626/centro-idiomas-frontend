@@ -34,11 +34,18 @@ interface EnrollmentWithDetails extends Enrollment {
   courseName: string;
   courseLevel: string;
   groupName: string;
+  group?: {
+    id: number;
+    name: string;
+    courseId: number;
+  };
 }
 
 export default function EnrollmentsPage() {
   const [enrollments, setEnrollments] = useState<EnrollmentWithDetails[]>([]);
+  const [allEnrollments, setAllEnrollments] = useState<EnrollmentWithDetails[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -46,6 +53,8 @@ export default function EnrollmentsPage() {
     userId: 0,
     groupId: 0,
   });
+  const [filterGroup, setFilterGroup] = useState<number | ''>('');
+  const [filterCourse, setFilterCourse] = useState<number | ''>('');
 
   const { canManageGroups, isAdmin, isProfesor, user, isAlumno } = useAuth();
 
@@ -53,50 +62,94 @@ export default function EnrollmentsPage() {
     loadData();
   }, []);
 
+  useEffect(() => {
+    applyFilters();
+  }, [filterGroup, filterCourse, allEnrollments]);
+
+  const applyFilters = () => {
+    let filtered = [...allEnrollments];
+    
+    if (filterGroup) {
+      filtered = filtered.filter(e => e.groupId === filterGroup);
+    }
+    
+    if (filterCourse) {
+      filtered = filtered.filter(e => e.group?.courseId === filterCourse);
+    }
+    
+    setEnrollments(filtered);
+  };
+
   const loadData = async () => {
     try {
-      let enrollmentsData: Enrollment[];
+      let enrollmentsData: any[];
+      let groupsData: Group[];
       
-      if (isAdmin || isProfesor) {
-        const response = await enrollmentsApi.getAll();
-        enrollmentsData = response.data;
+      if (isAdmin) {
+        const [enrollRes, groupsRes, coursesRes, usersRes] = await Promise.all([
+          enrollmentsApi.getAll(),
+          groupsApi.getAll(),
+          coursesApi.getAll(),
+          usersApi.getAll(),
+        ]);
+        enrollmentsData = enrollRes.data;
+        groupsData = groupsRes.data;
+        setCourses(coursesRes.data);
+        setUsers(usersRes.data);
+      } else if (isProfesor && user) {
+        const groupsRes = await groupsApi.getAll();
+        groupsData = groupsRes.data.filter((g: Group) => g.teacherId === user.id);
+        const groupIds = groupsData.map((g: Group) => g.id);
+        
+        const enrollRes = await enrollmentsApi.getAll();
+        enrollmentsData = enrollRes.data.filter((e: Enrollment) => groupIds.includes(e.groupId));
+        
+        const courseIds = [...new Set(groupsData.map((g: Group) => g.courseId))];
+        const coursesRes = await coursesApi.getAll();
+        setCourses(coursesRes.data.filter((c: Course) => courseIds.includes(c.id)));
+        
+        const userIds = [...new Set(enrollmentsData.map((e: Enrollment) => e.userId))];
+        const usersRes = await usersApi.getAll();
+        setUsers(usersRes.data.filter((u: User) => userIds.includes(u.id)));
       } else if (user) {
         const response = await enrollmentsApi.getByUser(user.id);
         enrollmentsData = response.data;
+        const groupsRes = await groupsApi.getAll();
+        groupsData = groupsRes.data;
+        const coursesRes = await coursesApi.getAll();
+        setCourses(coursesRes.data);
+        const usersRes = await usersApi.getAll();
+        setUsers(usersRes.data);
       } else {
         enrollmentsData = [];
+        groupsData = [];
       }
       
-      const [groupsRes, coursesRes, usersRes] = await Promise.all([
-        groupsApi.getAll(),
-        coursesApi.getAll(),
-        usersApi.getAll(),
-      ]);
-      
-      const groupsMap = groupsRes.data.reduce((acc, g) => {
+      const groupsMap = groupsData.reduce((acc, g) => {
         acc[g.id] = g;
         return acc;
       }, {} as Record<number, Group>);
       
-      const coursesMap = coursesRes.data.reduce((acc, c) => {
+      const coursesMap = courses.reduce((acc, c) => {
         acc[c.id] = c;
         return acc;
       }, {} as Record<number, Course>);
       
-      const enrichedEnrollments = enrollmentsData.map(e => {
-        const group = groupsMap[e.groupId];
-        const course = group ? coursesMap[group.courseId] : null;
+      const enrichedEnrollments = enrollmentsData.map((e: any) => {
+        const groupData = groupsMap[e.groupId];
+        const course = (e as any).group?.course || (groupData ? coursesMap[groupData.courseId] : null);
         return {
           ...e,
+          group: groupData,
           courseName: course?.name || 'Sin curso',
           courseLevel: course?.level || '',
-          groupName: group?.name || `Grupo #${e.groupId}`,
+          groupName: groupData?.name || e.group?.name || `Grupo #${e.groupId}`,
         };
       });
       
+      setAllEnrollments(enrichedEnrollments);
       setEnrollments(enrichedEnrollments);
-      setGroups(groupsRes.data);
-      setUsers(usersRes.data);
+      setGroups(groupsData);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -234,17 +287,44 @@ export default function EnrollmentsPage() {
 
   return (
     <Navbar>
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Matrículas</h1>
-          <p className="text-slate-500 mt-1">
-            {isAdmin || isProfesor ? 'Gestiona las inscripciones de alumnos' : 'Tus inscripciones'}
-          </p>
+      <div className="mb-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Matrículas</h1>
+            <p className="text-slate-500 mt-1">
+              {isAdmin || isProfesor ? 'Gestiona las inscripciones de alumnos' : 'Tus inscripciones'}
+            </p>
+          </div>
+          {canManageGroups && (
+            <Button onClick={() => { setShowForm(true); setFormData({ userId: 0, groupId: 0 }); }}>
+              + Nueva Matrícula
+            </Button>
+          )}
         </div>
-        {canManageGroups && (
-          <Button onClick={() => { setShowForm(true); setFormData({ userId: 0, groupId: 0 }); }}>
-            + Nueva Matrícula
-          </Button>
+
+        {(isAdmin || isProfesor) && (
+          <div className="flex flex-col sm:flex-row gap-3">
+            <select
+              value={filterCourse}
+              onChange={(e) => setFilterCourse(e.target.value ? Number(e.target.value) : '')}
+              className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm"
+            >
+              <option value="">Todos los cursos</option>
+              {courses.map(c => (
+                <option key={c.id} value={c.id}>{c.name} ({c.level})</option>
+              ))}
+            </select>
+            <select
+              value={filterGroup}
+              onChange={(e) => setFilterGroup(e.target.value ? Number(e.target.value) : '')}
+              className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm"
+            >
+              <option value="">Todos los grupos</option>
+              {groups.filter(g => !filterCourse || g.courseId === filterCourse).map(g => (
+                <option key={g.id} value={g.id}>{g.name}</option>
+              ))}
+            </select>
+          </div>
         )}
       </div>
 
