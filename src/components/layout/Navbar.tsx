@@ -1,6 +1,9 @@
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate, Link, useLocation } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { notificationsApi, type Notification } from "../../api/notifications.api";
+
+const STORAGE_KEY = 'seenNotifications';
 
 const allNavItems = [
   {
@@ -19,6 +22,12 @@ const allNavItems = [
     path: "/attendance",
     label: "Asistencia",
     icon: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z",
+    roles: [],
+  },
+  {
+    path: "/notifications",
+    label: "Notificaciones",
+    icon: "M15 17h5m-3-4V5a2 2 0 00-2-2H8l-2 2v4l-2 2v4a2 2 0 002 2h6m4 0V10m0 0h2m-2-2l2 2m-2-2l-2-2V7a2 2 0 012-2h2",
     roles: [],
   },
   {
@@ -62,6 +71,58 @@ export default function Navbar({ children }: NavbarProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const notifRef = useRef<HTMLDivElement>(null);
+
+  const getSeenIds = () => {
+    try {
+      return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    } catch {
+      return [];
+    }
+  };
+
+  const getUnseenNotifications = () => {
+    const seenIds = getSeenIds();
+    return notifications.filter(n => !seenIds.includes(n.id));
+  };
+
+  const markAsSeen = (id: string) => {
+    const seenIds = getSeenIds();
+    if (!seenIds.includes(id)) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify([...seenIds, id]));
+      setNotifications([...notifications]);
+    }
+  };
+
+  const markAllAsSeen = () => {
+    const ids = notifications.map(n => n.id);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
+    setNotifications([...notifications]);
+  };
+
+  useEffect(() => {
+    const loadNotifs = async () => {
+      try {
+        const res = await notificationsApi.getMyNotifications();
+        setNotifications(res.data || []);
+      } catch (e) {
+        console.error('Error loading notifs:', e);
+      }
+    };
+    loadNotifs();
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setIsNotifOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const getVisibleNavItems = () => {
     return allNavItems.filter((item) => {
@@ -123,6 +184,64 @@ export default function Navbar({ children }: NavbarProps) {
             </nav>
 
             <div className="flex items-center gap-2 sm:gap-4">
+              <div className="relative" ref={notifRef}>
+                <button
+                  onClick={() => setIsNotifOpen(!isNotifOpen)}
+                  className="relative p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                  title="Notificaciones"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5m-3-4V5a2 2 0 00-2-2H8l-2 2v4l-2 2v4a2 2 0 002 2h6m4 0V10m0 0h2m-2-2l2 2m-2-2l-2-2V7a2 2 0 012-2h2" />
+                  </svg>
+                  {getUnseenNotifications().length > 0 && (
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                      {getUnseenNotifications().length}
+                    </span>
+                  )}
+                </button>
+
+                {isNotifOpen && (
+                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-slate-200 overflow-hidden z-50">
+                    <div className="p-3 border-b border-slate-100 flex justify-between items-center">
+                      <h3 className="font-semibold text-slate-800">Notificaciones</h3>
+                      {getUnseenNotifications().length > 0 && (
+                        <button onClick={markAllAsSeen} className="text-xs text-indigo-600 hover:text-indigo-700">
+                          Marcar todo visto
+                        </button>
+                      )}
+                    </div>
+                    <div className="max-h-80 overflow-y-auto">
+                      {notifications.length === 0 ? (
+                        <p className="p-4 text-sm text-slate-500 text-center">Sin notificaciones</p>
+                      ) : (
+                        notifications.slice(0, 10).map(n => {
+                          const isSeen = getSeenIds().includes(n.id);
+                          return (
+                            <div
+                              key={n.id}
+                              className={`p-3 border-b border-slate-50 hover:bg-slate-50 cursor-pointer ${!isSeen ? 'bg-indigo-50/30' : ''}`}
+                              onClick={() => { markAsSeen(n.id); navigate('/notifications'); setIsNotifOpen(false); }}
+                            >
+                              <div className="flex items-start gap-2">
+                                <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
+                                  n.type === 'payment' ? 'bg-amber-500' :
+                                  n.type === 'certificate' ? 'bg-emerald-500' :
+                                  n.type === 'progress' ? 'bg-red-500' : 'bg-indigo-500'
+                                }`} />
+                                <div className="flex-1 min-w-0">
+                                  <p className={`text-sm ${!isSeen ? 'font-semibold' : ''} text-slate-800`}>{n.title}</p>
+                                  <p className="text-xs text-slate-500 truncate">{n.message}</p>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <Link
                 to="/profile"
                 className="flex items-center gap-2 sm:gap-3 hover:bg-slate-50 p-1 -m-1 rounded-lg transition-colors"

@@ -12,6 +12,7 @@ import PaymentsPage from "../pages/Payments/PaymentsPage";
 import CertificatesPage from "../pages/Certificates/CertificatesPage";
 import AdminCertificatesPage from "../pages/Certificates/AdminCertificatesPage";
 import ReportsPage from "../pages/Reports/ReportsPage";
+import NotificationsPage from "../pages/Notifications/NotificationsPage";
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { token, isLoading } = useAuth();
@@ -125,6 +126,14 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <AdminCertificatesPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/notifications",
+    element: (
+      <ProtectedRoute>
+        <NotificationsPage />
       </ProtectedRoute>
     ),
   },

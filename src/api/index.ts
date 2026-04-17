@@ -26,3 +26,4 @@ export * from './users.api';
 export * from './attendance.api';
 export * from './certificates.api';
 export * from './reports.api';
+export * from './notifications.api';
