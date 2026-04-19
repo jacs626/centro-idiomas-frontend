@@ -48,6 +48,16 @@ export default function GroupsPage() {
     return result;
   }, [groups, courses, filterCourse, filterLevel]);
 
+  const filteredCourses = useMemo(() => {
+    if (!filterLevel) return courses;
+    return courses.filter(c => c.level === filterLevel);
+  }, [courses, filterLevel]);
+
+  const handleLevelChange = (level: string) => {
+    setFilterLevel(level);
+    setFilterCourse('');
+  };
+
   const myGroups = useMemo(() => {
     if (isAdmin) return groups;
     if (isProfesor && user) {
@@ -248,16 +258,17 @@ export default function GroupsPage() {
         <div className="flex gap-4 mb-4 flex-wrap">
           <LevelFilter
             selectedLevel={filterLevel}
-            onChange={setFilterLevel}
+            onChange={handleLevelChange}
             placeholder="Todos los niveles"
           />
           <select
             value={filterCourse}
             onChange={(e) => setFilterCourse(e.target.value ? Number(e.target.value) : '')}
-            className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+            disabled={!filterLevel}
+            className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none disabled:opacity-50"
           >
             <option value="">Todos los cursos</option>
-            {courses.map(course => (
+            {filteredCourses.map(course => (
               <option key={course.id} value={course.id}>{course.name} - {course.level}</option>
             ))}
           </select>

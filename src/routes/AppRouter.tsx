@@ -71,7 +71,7 @@ export const router = createBrowserRouter([
   {
     path: "/courses",
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute allowedRoles={['admin', 'profesor', 'alumno']}>
         <CoursesPage />
       </ProtectedRoute>
     ),
@@ -79,7 +79,7 @@ export const router = createBrowserRouter([
   {
     path: "/groups",
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute allowedRoles={['admin', 'profesor']}>
         <GroupsPage />
       </ProtectedRoute>
     ),
@@ -87,7 +87,7 @@ export const router = createBrowserRouter([
   {
     path: "/enrollments",
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute allowedRoles={['admin']}>
         <EnrollmentsPage />
       </ProtectedRoute>
     ),
@@ -95,7 +95,7 @@ export const router = createBrowserRouter([
   {
     path: "/payments",
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute allowedRoles={['admin', 'alumno']}>
         <PaymentsPage />
       </ProtectedRoute>
     ),
@@ -103,7 +103,7 @@ export const router = createBrowserRouter([
   {
     path: "/reports",
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute allowedRoles={['admin']}>
         <AdminReportsRedirect />
       </ProtectedRoute>
     ),
@@ -111,7 +111,7 @@ export const router = createBrowserRouter([
   {
     path: "/attendance",
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute allowedRoles={['admin', 'profesor', 'alumno']}>
         <AttendancePage />
       </ProtectedRoute>
     ),
@@ -135,7 +135,7 @@ export const router = createBrowserRouter([
   {
     path: "/admin-certificates",
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute allowedRoles={['admin', 'profesor']}>
         <AdminCertificatesPage />
       </ProtectedRoute>
     ),
@@ -143,7 +143,7 @@ export const router = createBrowserRouter([
   {
     path: "/notifications",
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute allowedRoles={['admin', 'profesor', 'alumno']}>
         <NotificationsPage />
       </ProtectedRoute>
     ),
@@ -151,7 +151,7 @@ export const router = createBrowserRouter([
   {
     path: "/users",
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute allowedRoles={['admin', 'profesor']}>
         <UsersPage />
       </ProtectedRoute>
     ),

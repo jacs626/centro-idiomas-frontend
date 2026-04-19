@@ -108,13 +108,6 @@ const quickActionsProfesor = [
     path: "/attendance",
   },
   {
-    icon: "M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z",
-    label: "Pagos",
-    desc: "Ver cobros",
-    color: "rose",
-    path: "/payments",
-  },
-  {
     icon: "M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 114.834 0 6.585 6.585 0 010 8.607m9.321 0a3.42 3.42 0 00-4.834 0 6.585 6.585 0 010-8.607",
     label: "Certificados",
     desc: "Ver certificados",
