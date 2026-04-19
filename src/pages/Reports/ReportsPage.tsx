@@ -20,13 +20,27 @@ export default function ReportsPage() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [allGroups, setAllGroups] = useState<Group[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<number | ''>('');
-  const [selectedGroup, setSelectedGroup] = useState<number | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<number | ''>('');
   const [groupReport, setGroupReport] = useState<GroupReport | null>(null);
+  const [courseReport, setCourseReport] = useState<any[]>([]);
+  const [courseGroups, setCourseGroups] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (selectedCourse) {
+      const groupsOfCourse = allGroups.filter(g => g.courseId === selectedCourse);
+      setCourseGroups(groupsOfCourse);
+      loadCourseReport();
+    } else {
+      setCourseReport([]);
+      setCourseGroups([]);
+      setGroupReport(null);
+    }
+  }, [selectedCourse, allGroups]);
 
   useEffect(() => {
     if (selectedGroup) {
@@ -63,9 +77,37 @@ export default function ReportsPage() {
     }
   };
 
-const handleCourseChange = (courseId: number | '') => {
+  const loadCourseReport = async () => {
+    if (!selectedCourse) return;
+    try {
+      const res = await reportsApi.getCourseReport(selectedCourse);
+      setCourseReport(res.data || []);
+    } catch (error) {
+      console.error('Error loading course report:', error);
+    }
+  };
+
+  const courseSummary = useMemo(() => {
+    if (courseReport.length === 0) return null;
+    const totals = courseReport.reduce((acc, g) => ({
+      total: acc.total + g.total,
+      active: acc.active + g.active,
+      completed: acc.completed + g.completed,
+      dropped: acc.dropped + g.dropped,
+      progressSum: acc.progressSum + (g.avgProgress * g.total),
+    }), { total: 0, active: 0, completed: 0, dropped: 0, progressSum: 0 });
+    
+    const avgProgress = totals.total > 0 ? Math.round(totals.progressSum / totals.total) : 0;
+    const retention = totals.total > 0 
+      ? Math.round(((totals.active + totals.completed) / totals.total) * 100) 
+      : 0;
+    
+    return { total: totals.total, active: totals.active, completed: totals.completed, dropped: totals.dropped, avgProgress, retention };
+  }, [courseReport]);
+
+  const handleCourseChange = (courseId: number | '') => {
     setSelectedCourse(courseId);
-    setSelectedGroup(null);
+    setSelectedGroup('');
   };
 
   const handleGroupChange = (groupId: number | '') => {
@@ -120,39 +162,35 @@ const handleCourseChange = (courseId: number | '') => {
                 <p className="text-sm text-slate-500">Retirados</p>
               </div>
             </div>
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span className="text-slate-600">Retención</span>
-                <span className="font-semibold">{formatPercent(summary.enrollments.retention)}</span>
-              </div>
-              <ProgressBar value={summary.enrollments.retention} color="bg-emerald-500" />
-            </div>
+            <ProgressBar value={summary.enrollments.retention} color="bg-emerald-500" />
+            <p className="text-right text-sm text-slate-600 mt-1">Retención: {formatPercent(summary.enrollments.retention)}</p>
           </CardContent>
         </Card>
 
-        {/* 💰 PAGOS */}
+        {/* 💳 PAGOS */}
         <Card>
           <CardContent>
             <h2 className="text-lg font-semibold text-slate-800 mb-4">Pagos</h2>
-            <div className="mb-4">
-              <p className="text-3xl font-bold text-emerald-600">{formatCurrency(summary.payments.totalIncome)}</p>
-              <p className="text-sm text-slate-500">Ingresos totales</p>
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <p className="text-3xl font-bold text-slate-900">{formatCurrency(summary.payments.totalIncome)}</p>
+                <p className="text-sm text-slate-500">Ingresos</p>
+              </div>
+              <div>
+                <p className="text-3xl font-bold text-emerald-600">{summary.payments.paid}</p>
+                <p className="text-sm text-slate-500">Pagados</p>
+              </div>
+              <div>
+                <p className="text-3xl font-bold text-amber-600">{summary.payments.pending}</p>
+                <p className="text-sm text-slate-500">Pendientes</p>
+              </div>
+              <div>
+                <p className="text-3xl font-bold text-red-500">{summary.payments.late}</p>
+                <p className="text-sm text-slate-500">Vencidos</p>
+              </div>
             </div>
-            <div className="space-y-3">
-              {[
-                { label: 'Pagado', value: summary.payments.paidPercent, color: 'bg-emerald-500' },
-                { label: 'Pendiente', value: summary.payments.pendingPercent, color: 'bg-amber-500' },
-                { label: 'Vencido', value: summary.payments.latePercent, color: 'bg-red-500' },
-              ].map((item) => (
-                <div key={item.label}>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-slate-600">{item.label}</span>
-                    <span className="font-semibold">{formatPercent(item.value)}</span>
-                  </div>
-                  <ProgressBar value={item.value} color={item.color} />
-                </div>
-              ))}
-            </div>
+            <ProgressBar value={summary.payments.paidPercent} color="bg-emerald-500" />
+            <p className="text-right text-sm text-slate-600 mt-1">% Pagado: {formatPercent(summary.payments.paidPercent)}</p>
           </CardContent>
         </Card>
       </div>
@@ -173,6 +211,50 @@ const handleCourseChange = (courseId: number | '') => {
               groupPlaceholder="Selecciona un grupo"
             />
           </div>
+
+          {selectedCourse && !selectedGroup && courseGroups.length > 0 && (
+            <div className="mt-6">
+              {courseSummary && (
+                <div className="mb-6 p-4 bg-slate-50 rounded-lg">
+                  <h3 className="font-semibold text-slate-800 mb-4">Resumen del Curso</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    {[
+                      { label: 'Total', value: courseSummary.total, color: '' },
+                      { label: 'Activos', value: courseSummary.active, color: 'text-emerald-600' },
+                      { label: 'Completados', value: courseSummary.completed, color: 'text-indigo-600' },
+                      { label: 'Retirados', value: courseSummary.dropped, color: 'text-red-500' },
+                      { label: 'Retención', value: formatPercent(courseSummary.retention), color: 'text-emerald-600' },
+                    ].map((item) => (
+                      <div key={item.label}>
+                        <p className={`text-2xl font-bold ${item.color || 'text-slate-900'}`}>{item.value}</p>
+                        <p className="text-xs text-slate-500">{item.label}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-4 pt-4 border-t border-slate-200">
+                    <p className="text-sm text-slate-600">Progreso Promedio: <span className="font-bold text-indigo-600">{formatPercent(courseSummary.avgProgress)}</span></p>
+                  </div>
+                </div>
+              )}
+              
+              <h3 className="text-lg font-semibold text-slate-800 mb-4">Grupos del Curso</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {courseGroups.map(group => (
+                  <Card 
+                    key={group.id} 
+                    hover 
+                    className="cursor-pointer"
+                    onClick={() => handleGroupChange(group.id)}
+                  >
+                    <CardContent>
+                      <h4 className="font-semibold text-slate-800">{group.name}</h4>
+                      <p className="text-sm text-slate-500">{group.schedule || 'Sin horario'}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
 
           {groupReport && (
             <div className="space-y-4">
@@ -202,37 +284,41 @@ const handleCourseChange = (courseId: number | '') => {
                 <div className="flex items-center gap-2">
                   <span className="text-3xl font-bold text-indigo-600">{formatPercent(groupReport.avgProgress)}</span>
                 </div>
-                <div className="mt-2">
-                  <ProgressBar value={groupReport.avgProgress} color="bg-indigo-500" />
+              </div>
+
+              {/* 📊 ASISTENCIA */}
+              <div className="p-4 bg-slate-50 rounded-lg">
+                <h4 className="font-medium text-slate-700 mb-2">Asistencia</h4>
+                <div className="grid grid-cols-3 gap-4">
+                  {[
+                    { label: 'Presentes', value: groupReport.attendance.present, color: 'text-emerald-600' },
+                    { label: 'Ausentes', value: groupReport.attendance.absent, color: 'text-red-500' },
+                    { label: 'Tarde', value: groupReport.attendance.late, color: 'text-amber-600' },
+                  ].map((item) => (
+                    <div key={item.label}>
+                      <p className={`text-xl font-bold ${item.color || 'text-slate-900'}`}>{item.value}</p>
+                      <p className="text-xs text-slate-500">{item.label}</p>
+                      <p className="text-xs text-slate-400">
+                        {item.label === 'Presentes' ? `${groupReport.attendance.presentPercent}%` :
+                         item.label === 'Ausentes' ? `${groupReport.attendance.absentPercent}%` :
+                         `${groupReport.attendance.latePercent}%`}
+                      </p>
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              {/* 👨‍🎓 ASISTENCIA */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {[
-                  { label: 'Presente', value: groupReport.attendance.presentPercent, color: 'bg-emerald-500' },
-                  { label: 'Ausente', value: groupReport.attendance.absentPercent, color: 'bg-red-500' },
-                  { label: 'Tarde', value: groupReport.attendance.latePercent, color: 'bg-amber-500' },
-                ].map((item) => (
-                  <div key={item.label} className="p-3 bg-slate-50 rounded-lg">
-                    <div className="text-xl font-bold text-slate-800">{formatPercent(item.value)}</div>
-                    <div className="text-sm text-slate-500">{item.label}</div>
+              {/* 💳 PAGOS DEL GRUPO */}
+              <div className="p-4 bg-slate-50 rounded-lg">
+                <h4 className="font-medium text-slate-700 mb-2">Pagos del Grupo</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xl font-bold text-slate-900">{formatCurrency(groupReport.payments.totalIncome)}</p>
+                    <p className="text-xs text-slate-500">Ingresos</p>
                   </div>
-                ))}
-              </div>
-
-              {/* 💰 PAGOS DEL GRUPO */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 bg-slate-50 rounded-lg">
-                  <div className="text-xl font-bold text-emerald-600">{formatCurrency(groupReport.payments.totalIncome)}</div>
-                  <div className="text-sm text-slate-500">Ingresos del grupo</div>
-                </div>
-                <div className="p-4 bg-slate-50 rounded-lg">
-                  <div className="text-sm text-slate-500 mb-2">Estado de Pagos</div>
-                  <ProgressBar value={groupReport.payments.paidPercent} color="bg-emerald-500" />
-                  <div className="flex justify-between text-xs mt-1">
-                    <span>Pagado: {formatPercent(groupReport.payments.paidPercent)}</span>
-                    <span>Pendiente: {formatPercent(groupReport.payments.pendingPercent)}</span>
+                  <div>
+                    <p className="text-xl font-bold text-emerald-600">{groupReport.payments.paid}</p>
+                    <p className="text-xs text-slate-500">Pagados</p>
                   </div>
                 </div>
               </div>

@@ -68,4 +68,5 @@ export const reportsApi = {
   getSummary: () => api.get<ReportSummary>('/reports/summary'),
   getGroupsSummary: () => api.get<GroupsSummary[]>('/reports/groups'),
   getGroupReport: (groupId: number) => api.get<GroupReport>(`/reports/group/${groupId}`),
+  getCourseReport: (courseId: number) => api.get<GroupsSummary[]>(`/reports/course/${courseId}`),
 };

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { enrollmentsApi } from '../../api/enrollments.api';
 import { coursesApi, type Course } from '../../api/courses.api';
 import { groupsApi } from '../../api/groups.api';
@@ -8,6 +8,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Table } from '../../components/ui/Table';
 import { useAuth } from '../../context/AuthContext';
 import Navbar from '../../components/layout/Navbar';
+import LevelFilter from '../../components/filters/LevelFilter';
 
 interface CourseWithProgress extends Course {
   progress?: number;
@@ -20,6 +21,7 @@ export default function CoursesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
+  const [filterLevel, setFilterLevel] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     level: 'A1',
@@ -27,6 +29,11 @@ export default function CoursesPage() {
   });
 
   const { canManageCourses, isAdmin, isProfesor, isAlumno, user } = useAuth();
+
+  const filteredCourses = useMemo(() => {
+    if (!filterLevel) return courses;
+    return courses.filter(c => c.level === filterLevel);
+  }, [courses, filterLevel]);
 
   useEffect(() => {
     loadData();
@@ -302,8 +309,17 @@ export default function CoursesPage() {
         </Card>
       )}
 
+      {isAdmin && (
+        <div className="mb-4">
+          <LevelFilter
+            selectedLevel={filterLevel}
+            onChange={setFilterLevel}
+          />
+        </div>
+      )}
+
       <Card padding="none">
-        <Table columns={columns} data={courses} isLoading={isLoading} emptyMessage="No hay cursos disponibles" />
+        <Table columns={columns} data={filteredCourses} isLoading={isLoading} emptyMessage="No hay cursos disponibles" />
       </Card>
     </Navbar>
   );

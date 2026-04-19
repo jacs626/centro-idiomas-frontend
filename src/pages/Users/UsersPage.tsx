@@ -86,11 +86,25 @@ export default function UsersPage() {
           createdAt: undefined,
           deletedAt: null,
         }));
+
+        const groupIds = groupsRes.data
+          .filter(g => filterGroup ? g.id === Number(filterGroup) : (filterCourse ? g.courseId === Number(filterCourse) : false))
+          .map(g => g.id);
+        const teacherIds = [...new Set(
+          groupsRes.data
+            .filter(g => groupIds.length === 0 
+              ? (filterCourse ? g.courseId === Number(filterCourse) : false)
+              : groupIds.includes(g.id))
+            .map(g => g.teacherId)
+        )];
         
         const allUsers = await usersApi.getAll();
-        const adminUsers = (allUsers.data || []).filter(u => u.role !== 'alumno');
+        const adminUsers = (allUsers.data || []).filter(u => u.role === 'admin');
+        const teacherUsers = (allUsers.data || []).filter(
+          u => u.role === 'profesor' && teacherIds.includes(u.id)
+        );
         
-        let filteredUsers = [...usersWithEnrollment, ...adminUsers];
+        let filteredUsers = [...usersWithEnrollment, ...adminUsers, ...teacherUsers];
         
         if (filterRole) {
           filteredUsers = filteredUsers.filter(u => u.role === filterRole);

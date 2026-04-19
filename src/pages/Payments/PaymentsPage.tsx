@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { paymentsApi, type Payment } from '../../api/payments.api';
 import { groupsApi, type Group } from '../../api/groups.api';
 import { coursesApi, type Course } from '../../api/courses.api';
@@ -8,6 +8,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Table } from '../../components/ui/Table';
 import { useAuth } from '../../context/AuthContext';
 import Navbar from '../../components/layout/Navbar';
+import CourseGroupFilter from '../../components/filters/CourseGroupFilter';
 
 const statusColors: Record<string, 'default' | 'success' | 'warning' | 'danger'> = {
   pending: 'warning',
@@ -24,42 +25,44 @@ const statusLabels: Record<string, string> = {
 export default function PaymentsPage() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
-  const [groups, setGroups] = useState<Group[]>([]);
+  const [allGroups, setAllGroups] = useState<Group[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState({ courseId: '', groupId: '', status: '' });
 
   const { isAdmin, isAlumno, user } = useAuth();
 
+  const filteredGroups = useMemo(() => {
+    if (!filters.courseId) return allGroups;
+    return allGroups.filter(g => g.courseId === Number(filters.courseId));
+  }, [allGroups, filters.courseId]);
+
   useEffect(() => {
     loadData();
-    if (isAdmin) loadCourses();
   }, [filters]);
+
+  useEffect(() => {
+    if (isAdmin) {
+      loadCourses();
+    }
+  }, [isAdmin]);
 
   const loadCourses = async () => {
     try {
       const response = await coursesApi.getAll();
       setCourses(response.data);
+      const groupsRes = await groupsApi.getAll();
+      setAllGroups(groupsRes.data);
     } catch (error) {
       console.error('Error loading courses:', error);
     }
   };
 
-  const loadGroups = async (courseId: number) => {
-    try {
-      const response = await groupsApi.getByCourse(courseId);
-      setGroups(response.data);
-    } catch (error) {
-      console.error('Error loading groups:', error);
-    }
+  const handleCourseChange = (courseId: number | '') => {
+    setFilters(prev => ({ ...prev, courseId: String(courseId), groupId: '' }));
   };
 
-  const handleCourseChange = (courseId: string) => {
-    setFilters(prev => ({ ...prev, courseId, groupId: '' }));
-    if (courseId) {
-      loadGroups(Number(courseId));
-    } else {
-      setGroups([]);
-    }
+  const handleGroupChange = (groupId: number | '') => {
+    setFilters(prev => ({ ...prev, groupId: String(groupId) }));
   };
 
   const loadData = async () => {
@@ -71,7 +74,12 @@ export default function PaymentsPage() {
         paymentsData = response.data;
       } else if (isAdmin) {
         const filterParams: any = {};
-        if (filters.groupId) filterParams.groupId = Number(filters.groupId);
+        if (filters.groupId) {
+          filterParams.groupId = Number(filters.groupId);
+        } else if (filters.courseId) {
+          const courseGroups = allGroups.filter(g => g.courseId === Number(filters.courseId)).map(g => g.id);
+          filterParams.groupId = courseGroups;
+        }
         if (filters.status) filterParams.status = filters.status;
         const response = await paymentsApi.getAll(filterParams);
         paymentsData = response.data;
@@ -243,33 +251,14 @@ export default function PaymentsPage() {
 
       {isAdmin && (
         <div className="flex flex-wrap gap-4 mb-4 p-4 bg-white rounded-lg border border-slate-200">
-          <div>
-            <label className="block text-xs text-slate-500 mb-1">Curso</label>
-            <select
-              value={filters.courseId}
-              onChange={(e) => handleCourseChange(e.target.value)}
-              className="px-3 py-2 border border-slate-300 rounded-md text-sm"
-            >
-              <option value="">Todos los cursos</option>
-              {courses.map(course => (
-                <option key={course.id} value={course.id}>{course.name}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs text-slate-500 mb-1">Grupo</label>
-            <select
-              value={filters.groupId}
-              onChange={(e) => handleFilterChange('groupId', e.target.value)}
-              disabled={!filters.courseId}
-              className="px-3 py-2 border border-slate-300 rounded-md text-sm disabled:opacity-50"
-            >
-              <option value="">Todos los grupos</option>
-              {groups.map(group => (
-                <option key={group.id} value={group.id}>{group.name}</option>
-              ))}
-            </select>
-          </div>
+          <CourseGroupFilter
+            courses={courses}
+            groups={filteredGroups}
+            selectedCourse={filters.courseId ? Number(filters.courseId) : ''}
+            selectedGroup={filters.groupId ? Number(filters.groupId) : ''}
+            onCourseChange={handleCourseChange}
+            onGroupChange={handleGroupChange}
+          />
           <div>
             <label className="block text-xs text-slate-500 mb-1">Estado</label>
             <select

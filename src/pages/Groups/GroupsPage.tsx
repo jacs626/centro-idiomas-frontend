@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { groupsApi, type Group } from '../../api/groups.api';
 import { coursesApi, type Course } from '../../api/courses.api';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card';
@@ -6,6 +6,8 @@ import { Button } from '../../components/ui/Button';
 import { Table } from '../../components/ui/Table';
 import { useAuth } from '../../context/AuthContext';
 import Navbar from '../../components/layout/Navbar';
+import CourseGroupFilter from '../../components/filters/CourseGroupFilter';
+import LevelFilter from '../../components/filters/LevelFilter';
 
 interface Teacher {
   id: number;
@@ -27,12 +29,36 @@ export default function GroupsPage() {
     startDate: '',
     endDate: '',
   });
+  const [filterCourse, setFilterCourse] = useState<number | ''>('');
+  const [filterLevel, setFilterLevel] = useState('');
 
-  const { canManageGroups, isAdmin } = useAuth();
+  const { canManageGroups, isAdmin, isProfesor, user } = useAuth();
+
+  const filteredGroups = useMemo(() => {
+    let result = groups;
+    if (filterLevel) {
+      result = result.filter(g => {
+        const course = courses.find(c => c.id === g.courseId);
+        return course?.level === filterLevel;
+      });
+    }
+    if (filterCourse) {
+      result = result.filter(g => g.courseId === filterCourse);
+    }
+    return result;
+  }, [groups, courses, filterCourse, filterLevel]);
+
+  const myGroups = useMemo(() => {
+    if (isAdmin) return groups;
+    if (isProfesor && user) {
+      return groups.filter(g => g.teacherId === user.id);
+    }
+    return groups;
+  }, [groups, isAdmin, isProfesor, user?.id]);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [isAdmin, isProfesor]);
 
   const loadData = async () => {
     try {
@@ -218,8 +244,28 @@ export default function GroupsPage() {
         </Card>
       )}
 
+      {(isAdmin || isProfesor) && (
+        <div className="flex gap-4 mb-4 flex-wrap">
+          <LevelFilter
+            selectedLevel={filterLevel}
+            onChange={setFilterLevel}
+            placeholder="Todos los niveles"
+          />
+          <select
+            value={filterCourse}
+            onChange={(e) => setFilterCourse(e.target.value ? Number(e.target.value) : '')}
+            className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+          >
+            <option value="">Todos los cursos</option>
+            {courses.map(course => (
+              <option key={course.id} value={course.id}>{course.name} - {course.level}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
       <Card padding="none">
-        <Table columns={columns} data={groups} isLoading={isLoading} emptyMessage="No hay grupos disponibles" />
+        <Table columns={columns} data={isProfesor && !isAdmin ? filteredGroups : (isAdmin ? filteredGroups : myGroups)} isLoading={isLoading} emptyMessage="No hay grupos disponibles" />
       </Card>
     </Navbar>
   );
