@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { reportsApi, type GroupReport, type ReportSummary } from '../../api/reports.api';
 import { groupsApi, type Group } from '../../api/groups.api';
 import { coursesApi, type Course } from '../../api/courses.api';
 import { Card, CardContent } from '../../components/ui/Card';
 import Navbar from '../../components/layout/Navbar';
+import CourseGroupFilter from '../../components/filters/CourseGroupFilter';
 
 function ProgressBar({ value, max = 100, color = 'bg-indigo-500' }: { value: number; max?: number; color?: string }) {
   const percent = Math.min((value / max) * 100, 100);
@@ -62,14 +63,19 @@ export default function ReportsPage() {
     }
   };
 
-  const handleCourseChange = (courseId: string) => {
-    setSelectedCourse(courseId ? Number(courseId) : '');
+const handleCourseChange = (courseId: number | '') => {
+    setSelectedCourse(courseId);
     setSelectedGroup(null);
-};
+  };
 
-  const filteredGroups = selectedCourse 
-    ? allGroups.filter(g => g.courseId === selectedCourse)
-    : allGroups;
+  const handleGroupChange = (groupId: number | '') => {
+    setSelectedGroup(groupId);
+  };
+
+  const filteredGroups = useMemo(() => {
+    if (!selectedCourse) return allGroups;
+    return allGroups.filter(g => g.courseId === selectedCourse);
+  }, [allGroups, selectedCourse]);
 
   const formatPercent = (value: number) => `${Math.round(value)}%`;
   const formatCurrency = (value: number) =>
@@ -155,27 +161,17 @@ export default function ReportsPage() {
       <Card className="mt-6">
         <CardContent>
           <h2 className="text-lg font-semibold text-slate-800 mb-4">Reporte por Grupo</h2>
-          <div className="flex flex-wrap gap-4 mb-4">
-            <select
-              value={selectedCourse}
-              onChange={(e) => handleCourseChange(e.target.value)}
-              className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-            >
-              <option value="">Todos los cursos</option>
-              {courses.map(c => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-            <select
-              value={selectedGroup || ''}
-              onChange={(e) => setSelectedGroup(e.target.value ? Number(e.target.value) : null)}
-              className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-            >
-              <option value="">Selecciona un grupo</option>
-              {filteredGroups.map((g) => (
-                <option key={g.id} value={g.id}>{g.name}</option>
-              ))}
-            </select>
+          <div className="mb-4">
+            <CourseGroupFilter
+              courses={courses}
+              groups={filteredGroups}
+              selectedCourse={selectedCourse}
+              selectedGroup={selectedGroup ? Number(selectedGroup) : ''}
+              onCourseChange={handleCourseChange}
+              onGroupChange={handleGroupChange}
+              coursePlaceholder="Todos los cursos"
+              groupPlaceholder="Selecciona un grupo"
+            />
           </div>
 
           {groupReport && (

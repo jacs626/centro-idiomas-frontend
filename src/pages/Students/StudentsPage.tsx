@@ -7,6 +7,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Table } from '../../components/ui/Table';
 import { useAuth } from '../../context/AuthContext';
 import Navbar from '../../components/layout/Navbar';
+import CourseGroupFilter from '../../components/filters/CourseGroupFilter';
 
 const statusColors: Record<string, 'success' | 'warning' | 'info' | 'default'> = {
   active: 'success',
@@ -41,7 +42,8 @@ export default function StudentsPage() {
         filterGroup ? Number(filterGroup) : undefined,
         filterCourse ? Number(filterCourse) : undefined
       );
-      setStudents(studentsRes.data || []);
+      const allStudents = (studentsRes?.data || []).filter((s: StudentWithDetails) => s.userId !== user?.id);
+      setStudents(allStudents);
     } catch (error) {
       console.error('Error loading students:', error);
     } finally {
@@ -55,24 +57,24 @@ export default function StudentsPage() {
     { key: 'groupName', header: 'Grupo' },
     { key: 'courseName', header: 'Curso' },
     { key: 'courseLevel', header: 'Nivel' },
-    { 
-      key: 'progress', 
-      header: 'Progreso', 
+    {
+      key: 'progress',
+      header: 'Progreso',
       render: (s: StudentWithDetails) => (
         <div className="flex items-center gap-2">
           <div className="w-16 h-2 bg-slate-200 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-indigo-500 rounded-full" 
-              style={{ width: `${s.progress}%` }} 
+            <div
+              className="h-full bg-indigo-500 rounded-full"
+              style={{ width: `${s.progress}%` }}
             />
           </div>
           <span className="text-xs">{s.progress}%</span>
         </div>
       )
     },
-    { 
-      key: 'status', 
-      header: 'Estado', 
+    {
+      key: 'status',
+      header: 'Estado',
       render: (s: StudentWithDetails) => (
         <Badge variant={statusColors[s.status] || 'default'}>{s.status}</Badge>
       )
@@ -84,31 +86,23 @@ export default function StudentsPage() {
   return (
     <Navbar>
       <div className="mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Mis Alumnos</h1>
-        <p className="text-slate-500 mt-1">Alumnos de tus grupos</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">
+          Mis Alumnos
+        </h1>
+        <p className="text-slate-500 mt-1">
+          Alumnos de tus grupos
+        </p>
       </div>
 
-      <div className="flex gap-4 mb-4 flex-wrap">
-        <select
-          value={filterCourse}
-          onChange={(e) => { setFilterCourse(e.target.value); setFilterGroup(''); }}
-          className="px-3 py-2 border border-slate-300 rounded-lg"
-        >
-          <option value="">Todos los cursos</option>
-          {courses.map(c => (
-            <option key={c.id} value={c.id}>{c.name} - {c.level}</option>
-          ))}
-        </select>
-        <select
-          value={filterGroup}
-          onChange={(e) => setFilterGroup(e.target.value)}
-          className="px-3 py-2 border border-slate-300 rounded-lg"
-        >
-          <option value="">Todos los grupos</option>
-          {filteredGroups.map(g => (
-            <option key={g.id} value={g.id}>{g.name}</option>
-          ))}
-        </select>
+      <div className="mb-4">
+        <CourseGroupFilter
+          courses={courses}
+          groups={filteredGroups}
+          selectedCourse={filterCourse ? Number(filterCourse) : ''}
+          selectedGroup={filterGroup ? Number(filterGroup) : ''}
+          onCourseChange={(id) => setFilterCourse(id)}
+          onGroupChange={(id) => setFilterGroup(id)}
+        />
       </div>
 
       <Card padding="none">

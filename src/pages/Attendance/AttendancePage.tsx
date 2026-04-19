@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { attendanceApi, type AttendanceWithCourse } from '../../api/attendance.api';
 import { groupsApi, type Group } from '../../api/groups.api';
@@ -7,6 +7,7 @@ import { Card, CardContent } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { useAuth } from '../../context/AuthContext';
 import Navbar from '../../components/layout/Navbar';
+import CourseGroupFilter from '../../components/filters/CourseGroupFilter';
 
 interface AttendanceWithEnrollment {
   id: number;
@@ -48,8 +49,11 @@ export default function AttendancePage() {
   useEffect(() => {
     if (selectedGroup) {
       loadGroupAttendance();
+    } else if (selectedCourse) {
+      setStudentAttendance([]);
+      setSelectedStudent(null);
     }
-  }, [selectedGroup]);
+  }, [selectedGroup, selectedCourse]);
 
   const loadInitialData = async () => {
     try {
@@ -73,14 +77,25 @@ export default function AttendancePage() {
     }
   };
 
-  const handleCourseChange = (courseId: string) => {
-    setSelectedCourse(courseId ? Number(courseId) : '');
+  const handleCourseChange = (courseId: number | '') => {
+    setSelectedCourse(courseId);
     setSelectedGroup('');
+    setSelectedStudent(null);
   };
 
-  const filteredGroups = selectedCourse 
-    ? groups.filter(g => g.courseId === selectedCourse)
-    : groups;
+  const handleGroupChange = (groupId: number | '') => {
+    const groupIdNum = Number(groupId);
+    if (groupIdNum) {
+      setSelectedGroup(groupIdNum);
+    } else {
+      setSelectedGroup('');
+    }
+  };
+
+  const filteredGroups = useMemo(() => {
+    if (!selectedCourse) return groups;
+    return groups.filter(g => g.courseId === selectedCourse);
+  }, [groups, selectedCourse]);
 
   const loadGroupAttendance = async () => {
     try {
@@ -209,29 +224,38 @@ export default function AttendancePage() {
           <p className="text-slate-500 mt-1">Registro de asistencia por grupo</p>
         </div>
 
-        <div className="mb-6 flex flex-wrap gap-4">
-          <select
-            value={selectedCourse}
-            onChange={(e) => handleCourseChange(e.target.value)}
-            className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-          >
-            <option value="">Selecciona un curso</option>
-            {courses.map(c => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
-          <select
-            value={selectedGroup}
-            onChange={(e) => { setSelectedGroup(e.target.value ? Number(e.target.value) : ''); setSelectedStudent(null); }}
-            disabled={!selectedCourse}
-            className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none disabled:opacity-50"
-          >
-            <option value="">Selecciona un grupo</option>
-            {filteredGroups.map(g => (
-              <option key={g.id} value={g.id}>{g.name}</option>
-            ))}
-          </select>
+        <div className="mb-6">
+          <CourseGroupFilter
+            courses={courses}
+            groups={filteredGroups}
+            selectedCourse={selectedCourse}
+            selectedGroup={selectedGroup}
+            onCourseChange={handleCourseChange}
+            onGroupChange={handleGroupChange}
+            coursePlaceholder="Selecciona un curso"
+            groupPlaceholder="Selecciona un grupo"
+          />
         </div>
+
+        {selectedCourse && !selectedGroup && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredGroups.map(group => (
+              <Card 
+                key={group.id} 
+                className="cursor-pointer hover:shadow-md transition-shadow"
+                onClick={() => setSelectedGroup(group.id)}
+              >
+                <CardContent>
+                  <h3 className="font-semibold text-slate-800">{group.name}</h3>
+                  <p className="text-sm text-slate-500 mt-1">Horario: {group.schedule || 'No definido'}</p>
+                </CardContent>
+              </Card>
+            ))}
+            {filteredGroups.length === 0 && (
+              <p className="text-slate-500">No hay grupos para este curso</p>
+            )}
+          </div>
+        )}
 
         {selectedGroup && studentAttendance.length > 0 && !selectedStudent && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

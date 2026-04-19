@@ -23,6 +23,7 @@ export default function CertificatesWrapper() {
 function StudentCertificatesPage() {
   const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { user } = useAuth();
 
   useEffect(() => {
     loadData();
@@ -31,7 +32,10 @@ function StudentCertificatesPage() {
   const loadData = async () => {
     try {
       const response = await certificatesApi.getMyCertificates();
-      setCertificates(response.data);
+      const myCerts = (response.data || []).filter(
+        (c: Certificate) => c.enrollment?.userId === user?.id
+      );
+      setCertificates(myCerts);
     } catch (error) {
       console.error('Error loading certificates:', error);
     } finally {

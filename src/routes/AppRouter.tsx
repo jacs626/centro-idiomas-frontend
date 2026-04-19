@@ -22,11 +22,14 @@ function AdminReportsRedirect() {
   return <ReportsPage />;
 }
 
-export function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { token, isLoading } = useAuth();
+export function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode; allowedRoles?: string[] }) {
+  const { token, isLoading, user } = useAuth();
 
   if (isLoading) return <div>Cargando...</div>;
   if (!token) return <Navigate to="/login" />;
+  if (allowedRoles && user && !allowedRoles.includes(user.role)) {
+    return <Navigate to="/dashboard" />;
+  }
 
   return <>{children}</>;
 }
@@ -124,7 +127,7 @@ export const router = createBrowserRouter([
   {
     path: "/certificates",
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute allowedRoles={['admin', 'profesor', 'alumno']}>
         <CertificatesPage />
       </ProtectedRoute>
     ),
@@ -156,7 +159,7 @@ export const router = createBrowserRouter([
   {
     path: "/students",
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute allowedRoles={['admin', 'profesor']}>
         <StudentsPage />
       </ProtectedRoute>
     ),

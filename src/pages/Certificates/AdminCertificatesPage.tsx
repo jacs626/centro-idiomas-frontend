@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { certificatesApi } from '../../api/certificates.api';
 import { groupsApi, type Group } from '../../api/groups.api';
 import { coursesApi, type Course } from '../../api/courses.api';
@@ -9,6 +9,7 @@ import { Table } from '../../components/ui/Table';
 import { Badge } from '../../components/ui/Badge';
 import { useAuth } from '../../context/AuthContext';
 import Navbar from '../../components/layout/Navbar';
+import CourseGroupFilter from '../../components/filters/CourseGroupFilter';
 
 interface EnrollmentWithDetails extends Enrollment {
   courseName: string;
@@ -27,38 +28,33 @@ export default function AdminCertificatesPage() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [allGroups, setAllGroups] = useState<Group[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<number | ''>('');
-  const [selectedGroup, setSelectedGroup] = useState<number | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<number | ''>('');
   const [isLoading, setIsLoading] = useState(true);
 
-  const { isAdmin } = useAuth();
+  const { isAdmin, isProfesor, user } = useAuth();
+
+  const myGroups = useMemo(() => {
+    return allGroups.filter(g => isAdmin || g.teacherId === user?.id);
+  }, [allGroups, isAdmin, user?.id]);
+
+  const filteredCourses = useMemo(() => {
+    if (!isProfesor || isAdmin) return courses;
+    const courseIds = myGroups.map(g => g.courseId);
+    return courses.filter(c => courseIds.includes(c.id));
+  }, [courses, myGroups, isAdmin, isProfesor]);
 
   useEffect(() => {
     loadData();
-  }, [selectedGroup]);
+  }, [selectedGroup, selectedCourse, isAdmin, isProfesor]);
 
-  useEffect(() => {
-    if (allGroups.length > 0 && isAdmin) {
-      loadCourses();
-    }
-  }, [allGroups, isAdmin]);
-
-  const loadCourses = async () => {
-    try {
-      const coursesRes = await coursesApi.getAll();
-      setCourses(coursesRes.data);
-    } catch (error) {
-      console.error('Error loading courses:', error);
-    }
+  const handleCourseChange = (courseId: number | '') => {
+    setSelectedCourse(courseId);
+    setSelectedGroup('');
   };
 
-  const handleCourseChange = (courseId: string) => {
-    setSelectedCourse(courseId ? Number(courseId) : '');
-    setSelectedGroup(null);
+  const handleGroupChange = (groupId: number | '') => {
+    setSelectedGroup(groupId);
   };
-
-  const filteredGroups = selectedCourse 
-    ? allGroups.filter(g => g.courseId === selectedCourse)
-    : allGroups;
 
   const loadData = async () => {
     try {
@@ -77,7 +73,13 @@ export default function AdminCertificatesPage() {
       
       const certEnrollmentIds = new Set(certsRes.data.map(c => c.enrollmentId));
       
-      const allEnrollments = enrollRes.data.map(e => {
+      const teacherGroupIds = isProfesor 
+        ? groupsRes.data.filter((g: Group) => g.teacherId === user?.id).map((g: Group) => g.id)
+        : null;
+
+      const allEnrollments = enrollRes.data
+        .filter(e => !teacherGroupIds || teacherGroupIds.includes(e.groupId))
+        .map((e: Enrollment) => {
         const group = groupsRes.data.find(g => g.id === e.groupId);
         const course = coursesRes.data.find(c => c.id === group?.courseId);
         return {
@@ -91,6 +93,10 @@ export default function AdminCertificatesPage() {
       
       if (selectedGroup) {
         enrollData = allEnrollments.filter(e => e.groupId === selectedGroup);
+      } else if (selectedCourse) {
+        enrollData = allEnrollments.filter(e => 
+          allGroups.some(g => g.id === e.groupId && g.courseId === selectedCourse)
+        );
       } else {
         enrollData = allEnrollments;
       }
@@ -168,32 +174,19 @@ export default function AdminCertificatesPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Certificados</h1>
-          <p className="text-slate-500 mt-1">Gestiona los certificados de los alumnos</p>
+          <p className="text-slate-500 mt-1">
+            {isProfesor ? 'Gestiona los certificados de tus alumnos' : 'Gestiona los certificados de los alumnos'}
+          </p>
         </div>
-        {(isAdmin) && (
-          <div className="flex gap-2">
-            <select
-              value={selectedCourse}
-              onChange={(e) => handleCourseChange(e.target.value)}
-              className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-            >
-              <option value="">Todos los cursos</option>
-              {courses.map(c => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-            <select
-              value={selectedGroup || ''}
-              onChange={(e) => setSelectedGroup(e.target.value ? Number(e.target.value) : null)}
-              disabled={!selectedCourse}
-              className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none disabled:opacity-50"
-            >
-              <option value="">Todos los grupos</option>
-              {filteredGroups.map(g => (
-                <option key={g.id} value={g.id}>{g.name}</option>
-              ))}
-            </select>
-          </div>
+        {(isAdmin || isProfesor) && (
+          <CourseGroupFilter
+            courses={filteredCourses}
+            groups={myGroups}
+            selectedCourse={selectedCourse}
+            selectedGroup={selectedGroup}
+            onCourseChange={handleCourseChange}
+            onGroupChange={handleGroupChange}
+          />
         )}
       </div>
 

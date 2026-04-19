@@ -10,6 +10,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Table } from '../../components/ui/Table';
 import { useAuth } from '../../context/AuthContext';
 import Navbar from '../../components/layout/Navbar';
+import CourseGroupFilter from '../../components/filters/CourseGroupFilter';
 
 interface User {
   id: number;
@@ -70,6 +71,10 @@ export default function EnrollmentsPage() {
 
   const applyFilters = () => {
     let filtered = [...allEnrollments];
+
+    if (isAlumno) {
+      filtered = filtered.filter(e => e.status !== 'dropped');
+    }
     
     if (filterGroup) {
       filtered = filtered.filter(e => e.groupId === filterGroup);
@@ -339,14 +344,27 @@ export default function EnrollmentsPage() {
         </div>
 
         {(isAdmin || isProfesor) && (
+          <CourseGroupFilter
+            courses={courses}
+            groups={groups}
+            selectedCourse={filterCourse ? Number(filterCourse) : ''}
+            selectedGroup={filterGroup ? Number(filterGroup) : ''}
+            onCourseChange={(id) => setFilterCourse(id)}
+            onGroupChange={(id) => setFilterGroup(id)}
+            coursePlaceholder="Todos los cursos"
+            groupPlaceholder="Todos los grupos"
+          />
+        )}
+
+        {isAlumno && enrollments.length > 1 && (
           <div className="flex flex-col sm:flex-row gap-3">
             <select
               value={filterCourse}
               onChange={(e) => { setFilterCourse(e.target.value ? Number(e.target.value) : ''); setFilterGroup(''); }}
               className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm"
             >
-              <option value="">Todos los cursos</option>
-              {courses.map(c => (
+              <option value="">Todos mis cursos</option>
+              {courses.filter(c => enrollments.some(e => e.group?.courseId === c.id)).map(c => (
                 <option key={c.id} value={c.id}>{c.name} ({c.level})</option>
               ))}
             </select>
@@ -356,8 +374,8 @@ export default function EnrollmentsPage() {
               disabled={!filterCourse}
               className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm disabled:opacity-50"
             >
-              <option value="">Todos los grupos</option>
-              {groups.filter(g => !filterCourse || g.courseId === filterCourse).map(g => (
+              <option value="">Todos mis grupos</option>
+              {groups.filter(g => (!filterCourse || g.courseId === filterCourse) && enrollments.some(e => e.groupId === g.id)).map(g => (
                 <option key={g.id} value={g.id}>{g.name}</option>
               ))}
             </select>

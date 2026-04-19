@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { usersApi, type User, type CreateUserDto, type UpdateUserDto } from '../../api/users.api';
 import { enrollmentsApi, type StudentWithDetails } from '../../api/enrollments.api';
 import { coursesApi, type Course } from '../../api/courses.api';
@@ -9,6 +9,7 @@ import { Badge, type BadgeVariant } from '../../components/ui/Badge';
 import { Table } from '../../components/ui/Table';
 import { useAuth } from '../../context/AuthContext';
 import Navbar from '../../components/layout/Navbar';
+import CourseGroupFilter from '../../components/filters/CourseGroupFilter';
 
 const roleColors: Record<string, 'default' | 'success' | 'warning' | 'info'> = {
   admin: 'warning',
@@ -244,7 +245,9 @@ export default function UsersPage() {
   ];
 
   if (isProfesor) {
-    const filteredGroups = groups.filter(g => g.teacherId === user?.id);
+    const filteredGroups = useMemo(() => {
+    return groups.filter(g => g.teacherId === user?.id);
+  }, [groups, user?.id]);
     
     return (
       <Navbar>
@@ -253,27 +256,15 @@ export default function UsersPage() {
           <p className="text-slate-500 mt-1">Alumnos de tus grupos</p>
         </div>
 
-        <div className="flex gap-4 mb-4 flex-wrap">
-          <select
-            value={filterCourse}
-            onChange={(e) => { setFilterCourse(e.target.value); setFilterGroup(''); }}
-            className="px-3 py-2 border border-slate-300 rounded-lg"
-          >
-            <option value="">Todos los cursos</option>
-            {courses.map(c => (
-              <option key={c.id} value={c.id}>{c.name} - {c.level}</option>
-            ))}
-          </select>
-          <select
-            value={filterGroup}
-            onChange={(e) => setFilterGroup(e.target.value)}
-            className="px-3 py-2 border border-slate-300 rounded-lg"
-          >
-            <option value="">Todos los grupos</option>
-            {filteredGroups.map(g => (
-              <option key={g.id} value={g.id}>{g.name}</option>
-            ))}
-          </select>
+        <div className="mb-4">
+          <CourseGroupFilter
+            courses={courses}
+            groups={filteredGroups}
+            selectedCourse={filterCourse ? Number(filterCourse) : ''}
+            selectedGroup={filterGroup ? Number(filterGroup) : ''}
+            onCourseChange={(id) => setFilterCourse(String(id))}
+            onGroupChange={(id) => setFilterGroup(String(id))}
+          />
         </div>
 
         <Card padding="none">
@@ -305,29 +296,14 @@ export default function UsersPage() {
           <option value="alumno">Alumno</option>
         </select>
         {isAdmin && (
-          <>
-            <select
-              value={filterCourse}
-              onChange={(e) => { setFilterCourse(e.target.value); setFilterGroup(''); }}
-              className="px-3 py-2 border border-slate-300 rounded-lg"
-            >
-              <option value="">Todos los cursos</option>
-              {courses.map(c => (
-                <option key={c.id} value={c.id}>{c.name} - {c.level}</option>
-              ))}
-            </select>
-            <select
-              value={filterGroup}
-              onChange={(e) => setFilterGroup(e.target.value)}
-              className="px-3 py-2 border border-slate-300 rounded-lg"
-              disabled={!filterCourse}
-            >
-              <option value="">Todos los grupos</option>
-              {groups.filter(g => !filterCourse || g.courseId === Number(filterCourse)).map(g => (
-                <option key={g.id} value={g.id}>{g.name}</option>
-              ))}
-            </select>
-          </>
+          <CourseGroupFilter
+            courses={courses}
+            groups={groups}
+            selectedCourse={filterCourse ? Number(filterCourse) : ''}
+            selectedGroup={filterGroup ? Number(filterGroup) : ''}
+            onCourseChange={(id) => setFilterCourse(String(id))}
+            onGroupChange={(id) => setFilterGroup(String(id))}
+          />
         )}
       </div>
 
