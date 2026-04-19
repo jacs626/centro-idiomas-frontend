@@ -9,18 +9,7 @@ import { Table } from '../../components/ui/Table';
 import { useAuth } from '../../context/AuthContext';
 import Navbar from '../../components/layout/Navbar';
 import CourseGroupFilter from '../../components/filters/CourseGroupFilter';
-
-const statusColors: Record<string, 'default' | 'success' | 'warning' | 'danger'> = {
-  pending: 'warning',
-  paid: 'success',
-  late: 'danger',
-};
-
-const statusLabels: Record<string, string> = {
-  pending: 'Pendiente',
-  paid: 'Pagado',
-  late: 'Vencido',
-};
+import { paymentStatusColors, paymentStatusLabels, formatDate } from '../../components/utils/constants';
 
 export default function PaymentsPage() {
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -175,8 +164,8 @@ export default function PaymentsPage() {
                     <h3 className="font-semibold text-slate-800">{getCourseName(payment)}</h3>
                     <p className="text-sm text-slate-500">{getGroupName(payment)}</p>
                   </div>
-                  <Badge variant={statusColors[payment.status]}>
-                    {statusLabels[payment.status]}
+                  <Badge variant={paymentStatusColors[payment.status]}>
+                    {paymentStatusLabels[payment.status]}
                   </Badge>
                 </div>
                 <div className="mt-4 flex justify-between items-center">
@@ -220,8 +209,8 @@ export default function PaymentsPage() {
       key: 'status', 
       header: 'Estado', 
       render: (p: Payment) => (
-        <Badge variant={statusColors[p.status] as 'default' | 'success' | 'warning' | 'danger'}>
-          {statusLabels[p.status]}
+        <Badge variant={paymentStatusColors[p.status] as 'default' | 'success' | 'warning' | 'danger'}>
+          {paymentStatusLabels[p.status]}
         </Badge>
       )
     },

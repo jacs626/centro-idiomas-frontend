@@ -3,17 +3,12 @@ import { reportsApi, type GroupReport, type ReportSummary } from '../../api/repo
 import { groupsApi, type Group } from '../../api/groups.api';
 import { coursesApi, type Course } from '../../api/courses.api';
 import { Card, CardContent } from '../../components/ui/Card';
+import ProgressBar from '../../components/ui/ProgressBar';
+import StatsCard from '../../components/ui/StatsCard';
+import GroupCard from '../../components/ui/GroupCard';
 import Navbar from '../../components/layout/Navbar';
 import CourseGroupFilter from '../../components/filters/CourseGroupFilter';
-
-function ProgressBar({ value, max = 100, color = 'bg-indigo-500' }: { value: number; max?: number; color?: string }) {
-  const percent = Math.min((value / max) * 100, 100);
-  return (
-    <div className="w-full h-3 bg-slate-200 rounded-full overflow-hidden">
-      <div className={`h-full ${color} rounded-full`} style={{ width: `${percent}%` }} />
-    </div>
-  );
-}
+import { formatPercent, formatCurrency } from '../../components/utils/constants';
 
 export default function ReportsPage() {
   const [summary, setSummary] = useState<ReportSummary | null>(null);
@@ -119,10 +114,6 @@ export default function ReportsPage() {
     return allGroups.filter(g => g.courseId === selectedCourse);
   }, [allGroups, selectedCourse]);
 
-  const formatPercent = (value: number) => `${Math.round(value)}%`;
-  const formatCurrency = (value: number) =>
-    new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'USD' }).format(Number(value) || 0);
-
   if (isLoading || !summary) {
     return (
       <Navbar>
@@ -162,8 +153,7 @@ export default function ReportsPage() {
                 <p className="text-sm text-slate-500">Retirados</p>
               </div>
             </div>
-            <ProgressBar value={summary.enrollments.retention} color="bg-emerald-500" />
-            <p className="text-right text-sm text-slate-600 mt-1">Retención: {formatPercent(summary.enrollments.retention)}</p>
+            <ProgressBar value={summary.enrollments.retention} color="emerald" showLabel />
           </CardContent>
         </Card>
 
@@ -189,8 +179,7 @@ export default function ReportsPage() {
                 <p className="text-sm text-slate-500">Vencidos</p>
               </div>
             </div>
-            <ProgressBar value={summary.payments.paidPercent} color="bg-emerald-500" />
-            <p className="text-right text-sm text-slate-600 mt-1">% Pagado: {formatPercent(summary.payments.paidPercent)}</p>
+            <ProgressBar value={summary.payments.paidPercent} color="emerald" showLabel label="% Pagado" />
           </CardContent>
         </Card>
       </div>
