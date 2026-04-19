@@ -38,16 +38,24 @@ export interface CreatePaymentDto {
 }
 
 export const paymentsApi = {
-  getAll: (filters?: { userId?: number; groupId?: number; status?: string }) => {
+  getAll: (filters?: { userId?: number; groupId?: number | number[]; status?: string }) => {
     const params = new URLSearchParams();
     if (filters?.userId) params.append('userId', filters.userId.toString());
-    if (filters?.groupId) params.append('groupId', filters.groupId.toString());
+    if (filters?.groupId) {
+      if (Array.isArray(filters.groupId)) {
+        filters.groupId.forEach(g => params.append('groupId', g.toString()));
+      } else {
+        params.append('groupId', filters.groupId.toString());
+      }
+    }
     if (filters?.status) params.append('status', filters.status);
     return api.get<Payment[]>(`/payments?${params.toString()}`);
   },
   getById: (id: number) => api.get<Payment>(`/payments/${id}`),
   getByUser: (userId: number) => api.get<Payment[]>(`/payments/by-user?userId=${userId}`),
   getMyPayments: () => api.get<Payment[]>('/payments/my-payments'),
+  getByEnrollment: (enrollmentId: number) => api.get<Payment[]>(`/payments/enrollment/${enrollmentId}`),
+  getByGroup: (groupId: number) => api.get<Payment[]>(`/payments/group/${groupId}`),
   create: (data: CreatePaymentDto) => api.post<Payment>('/payments', data),
   markAsPaid: (id: number) => api.patch<Payment>(`/payments/${id}/pay`),
   update: (id: number, data: Partial<CreatePaymentDto>) => api.patch<Payment>(`/payments/${id}`, data),
