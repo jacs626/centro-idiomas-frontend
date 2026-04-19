@@ -3,11 +3,14 @@ import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Ca
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { useAuth } from '../../context/AuthContext';
+import { authApi } from '../../api/auth.api';
 import Navbar from '../../components/layout/Navbar';
 
 export default function ProfilePage() {
   const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [formData, setFormData] = useState({
     name: user?.name || '',
     email: user?.email || '',
@@ -24,12 +27,35 @@ export default function ProfilePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setMessage(null);
+    
     if (formData.newPassword !== formData.confirmPassword) {
-      alert('Las contraseñas no coinciden');
+      setMessage({ type: 'error', text: 'Las contraseñas no coinciden' });
       return;
     }
-    alert('Funcionalidad de cambio de contraseña en desarrollo');
-    setIsEditing(false);
+
+    if (!formData.currentPassword || !formData.newPassword) {
+      setMessage({ type: 'error', text: 'Debes completar todos los campos de contraseña' });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await authApi.changePassword({
+        currentPassword: formData.currentPassword,
+        newPassword: formData.newPassword,
+      });
+      setMessage({ type: 'success', text: 'Contraseña actualizada correctamente' });
+      setFormData(prev => ({ ...prev, currentPassword: '', newPassword: '', confirmPassword: '' }));
+      setIsEditing(false);
+    } catch (error: any) {
+      setMessage({ 
+        type: 'error', 
+        text: error.response?.data?.message || 'Error al cambiar la contraseña' 
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const getRoleLabel = (role: string) => {
@@ -67,8 +93,10 @@ export default function ProfilePage() {
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    disabled={user?.role !== 'admin'}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none ${user?.role !== 'admin' ? 'border-slate-200 bg-slate-50 text-slate-500' : 'border-slate-300'}`}
                   />
+                  {user?.role !== 'admin' && <p className="text-xs text-slate-400 mt-1">Solo los administradores pueden cambiar el nombre</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
@@ -112,7 +140,14 @@ export default function ProfilePage() {
                   </div>
                 </div>
                 <div className="flex justify-end">
-                  <Button type="submit">Guardar cambios</Button>
+                  {message && (
+                    <p className={`mr-4 text-sm ${message.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                      {message.text}
+                    </p>
+                  )}
+                  <Button type="submit" disabled={isLoading}>
+                    {isLoading ? 'Guardando...' : 'Guardar cambios'}
+                  </Button>
                 </div>
               </form>
             ) : (

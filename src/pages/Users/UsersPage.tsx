@@ -1,9 +1,13 @@
 import { useState, useEffect } from 'react';
 import { usersApi, type User, type CreateUserDto, type UpdateUserDto } from '../../api/users.api';
+import { enrollmentsApi, type StudentWithDetails } from '../../api/enrollments.api';
+import { coursesApi, type Course } from '../../api/courses.api';
+import { groupsApi, type Group } from '../../api/groups.api';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
-import { Badge } from '../../components/ui/Badge';
+import { Badge, type BadgeVariant } from '../../components/ui/Badge';
 import { Table } from '../../components/ui/Table';
+import { useAuth } from '../../context/AuthContext';
 import Navbar from '../../components/layout/Navbar';
 
 const roleColors: Record<string, 'default' | 'success' | 'warning' | 'info'> = {
@@ -18,10 +22,22 @@ const roleLabels: Record<string, string> = {
   alumno: 'Alumno',
 };
 
+const statusColors: Record<string, BadgeVariant> = {
+  active: 'success',
+  completed: 'info',
+  dropped: 'warning',
+};
+
 export default function UsersPage() {
+  const { isProfesor, isAdmin, user } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
+  const [students, setStudents] = useState<StudentWithDetails[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filterRole, setFilterRole] = useState('');
+  const [filterGroup, setFilterGroup] = useState('');
+  const [filterCourse, setFilterCourse] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [formData, setFormData] = useState<CreateUserDto>({
@@ -32,20 +48,87 @@ export default function UsersPage() {
   });
 
   useEffect(() => {
-    loadData();
-  }, [filterRole]);
+    if (isProfesor) {
+      loadProfessorData();
+    } else {
+      loadAdminData();
+    }
+  }, [filterRole, filterGroup, filterCourse, isProfesor]);
 
-  const loadData = async () => {
+  const loadAdminData = async () => {
     try {
       setIsLoading(true);
-      const response = await usersApi.getAll(filterRole || undefined);
-      setUsers(response.data);
+      const [coursesRes, groupsRes] = await Promise.all([
+        coursesApi.getAll(),
+        groupsApi.getAll(),
+      ]);
+      setCourses(coursesRes.data || []);
+      setGroups(groupsRes.data || []);
+
+      if (filterCourse || filterGroup) {
+        const studentsRes = await enrollmentsApi.getStudentsByFilters(
+          filterGroup ? Number(filterGroup) : undefined,
+          filterCourse ? Number(filterCourse) : undefined
+        );
+        const studentMap = new Map<number, StudentWithDetails>();
+        studentsRes.data?.forEach(s => {
+          if (!studentMap.has(s.userId)) {
+            studentMap.set(s.userId, s);
+          }
+        });
+        
+        const usersWithEnrollment = Array.from(studentMap.values()).map(s => ({
+          id: s.userId,
+          name: s.userName,
+          email: s.userEmail,
+          role: 'alumno' as const,
+          createdAt: undefined,
+          deletedAt: null,
+        }));
+        
+        const allUsers = await usersApi.getAll();
+        const adminUsers = (allUsers.data || []).filter(u => u.role !== 'alumno');
+        
+        let filteredUsers = [...usersWithEnrollment, ...adminUsers];
+        
+        if (filterRole) {
+          filteredUsers = filteredUsers.filter(u => u.role === filterRole);
+        }
+        setUsers(filteredUsers);
+      } else {
+        const response = await usersApi.getAll(filterRole || undefined);
+        setUsers(response.data);
+      }
     } catch (error) {
       console.error('Error loading users:', error);
     } finally {
       setIsLoading(false);
     }
   };
+
+  const loadProfessorData = async () => {
+    try {
+      setIsLoading(true);
+      const [coursesRes, groupsRes] = await Promise.all([
+        coursesApi.getAll(),
+        groupsApi.getAll(),
+      ]);
+      setCourses(coursesRes.data || []);
+      setGroups(groupsRes.data || []);
+      
+      const studentsRes = await enrollmentsApi.getMyStudents(
+        filterGroup ? Number(filterGroup) : undefined,
+        filterCourse ? Number(filterCourse) : undefined
+      );
+      setStudents(studentsRes.data || []);
+    } catch (error) {
+      console.error('Error loading students:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadData = loadAdminData;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,6 +213,76 @@ export default function UsersPage() {
     },
   ];
 
+  const studentColumns = [
+    { key: 'userName', header: 'Nombre' },
+    { key: 'userEmail', header: 'Email' },
+    { key: 'groupName', header: 'Grupo' },
+    { key: 'courseName', header: 'Curso' },
+    { key: 'courseLevel', header: 'Nivel' },
+    { 
+      key: 'progress', 
+      header: 'Progreso', 
+      render: (s: StudentWithDetails) => (
+        <div className="flex items-center gap-2">
+          <div className="w-16 h-2 bg-slate-200 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-indigo-500 rounded-full" 
+              style={{ width: `${s.progress}%` }} 
+            />
+          </div>
+          <span className="text-xs">{s.progress}%</span>
+        </div>
+      )
+    },
+    { 
+      key: 'status', 
+      header: 'Estado', 
+      render: (s: StudentWithDetails) => (
+        <Badge variant={statusColors[s.status] || 'default'}>{s.status}</Badge>
+      )
+    },
+  ];
+
+  if (isProfesor) {
+    const filteredGroups = groups.filter(g => g.teacherId === user?.id);
+    
+    return (
+      <Navbar>
+        <div className="mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Mis Alumnos</h1>
+          <p className="text-slate-500 mt-1">Alumnos de tus grupos</p>
+        </div>
+
+        <div className="flex gap-4 mb-4 flex-wrap">
+          <select
+            value={filterCourse}
+            onChange={(e) => { setFilterCourse(e.target.value); setFilterGroup(''); }}
+            className="px-3 py-2 border border-slate-300 rounded-lg"
+          >
+            <option value="">Todos los cursos</option>
+            {courses.map(c => (
+              <option key={c.id} value={c.id}>{c.name} - {c.level}</option>
+            ))}
+          </select>
+          <select
+            value={filterGroup}
+            onChange={(e) => setFilterGroup(e.target.value)}
+            className="px-3 py-2 border border-slate-300 rounded-lg"
+          >
+            <option value="">Todos los grupos</option>
+            {filteredGroups.map(g => (
+              <option key={g.id} value={g.id}>{g.name}</option>
+            ))}
+          </select>
+        </div>
+
+        <Card padding="none">
+          <Table columns={studentColumns} data={students} isLoading={isLoading} emptyMessage="No hay alumnos en tus grupos" />
+        </Card>
+      </Navbar>
+    );
+  }
+
   return (
     <Navbar>
       <div className="flex justify-between items-center mb-6">
@@ -137,10 +290,10 @@ export default function UsersPage() {
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Usuarios</h1>
           <p className="text-slate-500 mt-1">Gestiona los usuarios del sistema</p>
         </div>
-        <Button onClick={handleNew}>+ Nuevo Usuario</Button>
+        {isAdmin && <Button onClick={handleNew}>+ Nuevo Usuario</Button>}
       </div>
 
-      <div className="flex gap-4 mb-4">
+      <div className="flex gap-4 mb-4 flex-wrap">
         <select
           value={filterRole}
           onChange={(e) => setFilterRole(e.target.value)}
@@ -151,6 +304,31 @@ export default function UsersPage() {
           <option value="profesor">Profesor</option>
           <option value="alumno">Alumno</option>
         </select>
+        {isAdmin && (
+          <>
+            <select
+              value={filterCourse}
+              onChange={(e) => { setFilterCourse(e.target.value); setFilterGroup(''); }}
+              className="px-3 py-2 border border-slate-300 rounded-lg"
+            >
+              <option value="">Todos los cursos</option>
+              {courses.map(c => (
+                <option key={c.id} value={c.id}>{c.name} - {c.level}</option>
+              ))}
+            </select>
+            <select
+              value={filterGroup}
+              onChange={(e) => setFilterGroup(e.target.value)}
+              className="px-3 py-2 border border-slate-300 rounded-lg"
+              disabled={!filterCourse}
+            >
+              <option value="">Todos los grupos</option>
+              {groups.filter(g => !filterCourse || g.courseId === Number(filterCourse)).map(g => (
+                <option key={g.id} value={g.id}>{g.name}</option>
+              ))}
+            </select>
+          </>
+        )}
       </div>
 
       {showForm && (

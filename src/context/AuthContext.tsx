@@ -31,18 +31,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const storedToken = localStorage.getItem('token');
-    if (storedToken) {
-      setToken(storedToken);
-      try {
-        const payload = JSON.parse(atob(storedToken.split('.')[1]));
-        setUser({ id: payload.sub, email: payload.email, role: payload.role as UserRole });
-      } catch {
-        localStorage.removeItem('token');
-        setToken(null);
+    const loadUser = async () => {
+      const storedToken = localStorage.getItem('token');
+      if (storedToken) {
+        setToken(storedToken);
+        try {
+          const userRes = await authApi.getMe();
+          setUser(userRes.data);
+        } catch {
+          localStorage.removeItem('token');
+          setToken(null);
+        }
       }
-    }
-    setIsLoading(false);
+      setIsLoading(false);
+    };
+    loadUser();
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -52,8 +55,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('token', accessToken);
     setToken(accessToken);
     
-    const payload = JSON.parse(atob(accessToken.split('.')[1]));
-    setUser({ id: payload.sub, email: payload.email, role: payload.role as UserRole });
+    const userRes = await authApi.getMe();
+    setUser(userRes.data);
   };
 
   const logout = () => {

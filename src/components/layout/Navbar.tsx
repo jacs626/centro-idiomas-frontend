@@ -63,6 +63,12 @@ const allNavItems = [
     icon: "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z",
     roles: ["admin"],
   },
+  {
+    path: "/students",
+    label: "Alumnos",
+    icon: "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z",
+    roles: ["profesor"],
+  },
 ];
 
 interface NavbarProps {
@@ -130,7 +136,10 @@ export default function Navbar({ children }: NavbarProps) {
   const getVisibleNavItems = () => {
     return allNavItems.filter((item) => {
       if (!item.roles || item.roles.length === 0) return true;
-      if (isAdmin) return true;
+      if (isAdmin) {
+        if (item.roles.length === 1 && item.roles[0] === "profesor") return false;
+        return true;
+      }
       return item.roles.includes(user?.role || "");
     });
   };
@@ -289,7 +298,7 @@ export default function Navbar({ children }: NavbarProps) {
                 </div>
                 <div className="hidden lg:block min-w-0">
                   <p className="text-sm font-medium text-slate-800 truncate max-w-[150px]">
-                    {user?.email}
+                    {user?.name || user?.email}
                   </p>
                   <p className="text-xs text-slate-500 capitalize">
                     {user?.role}
