@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { attendanceApi, type AttendanceWithCourse } from '../../api/attendance.api';
 import { groupsApi, type Group } from '../../api/groups.api';
 import { coursesApi, type Course } from '../../api/courses.api';
+import { enrollmentsApi } from '../../api/enrollments.api';
 import { Card, CardContent } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
+import { Button } from '../../components/ui/Button';
 import { useAuth } from '../../context/AuthContext';
 import Navbar from '../../components/layout/Navbar';
 import CourseGroupFilter from '../../components/filters/CourseGroupFilter';
@@ -39,6 +41,10 @@ export default function AttendancePage() {
   const [studentAttendance, setStudentAttendance] = useState<StudentAttendance[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [enrollments, setEnrollments] = useState<any[]>([]);
+  const [newAttendance, setNewAttendance] = useState({ enrollmentId: '', date: '', status: 'present' });
+  const [isSaving, setIsSaving] = useState(false);
 
   const { isAdmin, isProfesor, isAlumno, user } = useAuth();
 
@@ -161,6 +167,40 @@ export default function AttendancePage() {
     return new Date(dateStr).toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' });
   };
 
+  const loadEnrollments = async () => {
+    if (!selectedGroup) return;
+    try {
+      const res = await enrollmentsApi.getByGroup(Number(selectedGroup));
+      setEnrollments(res.data || []);
+    } catch (error) {
+      console.error('Error loading enrollments:', error);
+    }
+  };
+
+  const handleOpenAddModal = async () => {
+    await loadEnrollments();
+    setNewAttendance({ enrollmentId: '', date: new Date().toISOString().split('T')[0], status: 'present' });
+    setShowAddModal(true);
+  };
+
+  const handleSaveAttendance = async () => {
+    if (!newAttendance.enrollmentId || !newAttendance.date) return;
+    setIsSaving(true);
+    try {
+      await attendanceApi.create({
+        enrollmentId: Number(newAttendance.enrollmentId),
+        date: newAttendance.date,
+        status: newAttendance.status,
+      });
+      setShowAddModal(false);
+      loadGroupAttendance();
+    } catch (error) {
+      console.error('Error saving attendance:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const selectedStudentData = selectedStudent 
     ? studentAttendance.find(s => s.enrollmentId === selectedStudent) 
     : null;
@@ -257,6 +297,27 @@ export default function AttendancePage() {
           </div>
         )}
 
+        {selectedGroup && !selectedStudent && (
+          <div className="mb-4">
+            <Button onClick={handleOpenAddModal}>
+              + Agregar Asistencia Manual
+            </Button>
+          </div>
+        )}
+
+        {selectedGroup && studentAttendance.length === 0 && !selectedStudent && !isLoading && (
+          <Card>
+            <CardContent>
+              <p className="text-center text-slate-500 mb-4">No hay registros de asistencia para este grupo</p>
+              <div className="flex justify-center">
+                <Button onClick={handleOpenAddModal}>
+                  + Agregar Asistencia
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {selectedGroup && studentAttendance.length > 0 && !selectedStudent && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {studentAttendance.map(student => {
@@ -321,6 +382,62 @@ export default function AttendancePage() {
               <p className="text-center text-slate-500">Selecciona un grupo para ver la asistencia</p>
             </CardContent>
           </Card>
+        )}
+
+        {showAddModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <Card className="w-full max-w-md mx-4">
+              <CardContent>
+                <h3 className="font-semibold text-lg mb-4">Agregar Asistencia</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm text-slate-600 mb-1">Alumno</label>
+                    <select
+                      value={newAttendance.enrollmentId}
+                      onChange={(e) => setNewAttendance({ ...newAttendance, enrollmentId: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-md"
+                    >
+                      <option value="">Selecciona un alumno</option>
+                      {enrollments.map((enr) => (
+                        <option key={enr.id} value={enr.id}>
+                          {enr.user?.name || `Alumno #${enr.userId}`}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-slate-600 mb-1">Fecha</label>
+                    <input
+                      type="date"
+                      value={newAttendance.date}
+                      onChange={(e) => setNewAttendance({ ...newAttendance, date: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-md"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-slate-600 mb-1">Estado</label>
+                    <select
+                      value={newAttendance.status}
+                      onChange={(e) => setNewAttendance({ ...newAttendance, status: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-md"
+                    >
+                      <option value="present">Presente</option>
+                      <option value="absent">Ausente</option>
+                      <option value="late">Tarde</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="flex gap-3 mt-6">
+                  <Button variant="secondary" onClick={() => setShowAddModal(false)} className="flex-1">
+                    Cancelar
+                  </Button>
+                  <Button onClick={handleSaveAttendance} disabled={isSaving || !newAttendance.enrollmentId} className="flex-1">
+                    {isSaving ? 'Guardando...' : 'Guardar'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         )}
       </Navbar>
     );

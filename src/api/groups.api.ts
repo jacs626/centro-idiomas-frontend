@@ -7,6 +7,7 @@ export interface Group {
   teacherId: number;
   startDate: string;
   endDate?: string;
+  schedule?: string;
   course?: { id: number; name: string; level: string };
 }
 
