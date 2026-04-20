@@ -66,8 +66,7 @@ export default function PaymentsPage() {
         if (filters.groupId) {
           filterParams.groupId = Number(filters.groupId);
         } else if (filters.courseId) {
-          const courseGroups = allGroups.filter(g => g.courseId === Number(filters.courseId)).map(g => g.id);
-          filterParams.groupId = courseGroups;
+          filterParams.courseId = Number(filters.courseId);
         }
         if (filters.status) filterParams.status = filters.status;
         const response = await paymentsApi.getAll(filterParams);
