@@ -4,8 +4,6 @@ import { groupsApi, type Group } from '../../api/groups.api';
 import { coursesApi, type Course } from '../../api/courses.api';
 import { Card, CardContent } from '../../components/ui/Card';
 import ProgressBar from '../../components/ui/ProgressBar';
-import StatsCard from '../../components/ui/StatsCard';
-import GroupCard from '../../components/ui/GroupCard';
 import Navbar from '../../components/layout/Navbar';
 import CourseGroupFilter from '../../components/filters/CourseGroupFilter';
 import { formatPercent, formatCurrency } from '../../components/utils/constants';

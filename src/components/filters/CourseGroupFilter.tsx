@@ -22,8 +22,6 @@ export default function CourseGroupFilter({
   selectedGroup,
   onCourseChange,
   onGroupChange,
-  allowAllCourses = true,
-  allowAllGroups = true,
   coursePlaceholder = 'Todos los cursos',
   groupPlaceholder = 'Todos los grupos',
 }: CourseGroupFilterProps) {

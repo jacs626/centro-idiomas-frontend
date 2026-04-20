@@ -6,7 +6,6 @@ import { Button } from '../../components/ui/Button';
 import { Table } from '../../components/ui/Table';
 import { useAuth } from '../../context/AuthContext';
 import Navbar from '../../components/layout/Navbar';
-import CourseGroupFilter from '../../components/filters/CourseGroupFilter';
 import LevelFilter from '../../components/filters/LevelFilter';
 
 interface Teacher {

@@ -21,8 +21,8 @@ export default function StudentsPage() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [filterGroup, setFilterGroup] = useState('');
-  const [filterCourse, setFilterCourse] = useState('');
+  const [filterGroup, setFilterGroup] = useState<number | ''>('');
+  const [filterCourse, setFilterCourse] = useState<number | ''>('');
 
   useEffect(() => {
     loadData();

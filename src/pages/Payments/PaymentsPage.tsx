@@ -9,7 +9,7 @@ import { Table } from '../../components/ui/Table';
 import { useAuth } from '../../context/AuthContext';
 import Navbar from '../../components/layout/Navbar';
 import CourseGroupFilter from '../../components/filters/CourseGroupFilter';
-import { paymentStatusColors, paymentStatusLabels, formatDate } from '../../components/utils/constants';
+import { paymentStatusColors, paymentStatusLabels } from '../../components/utils/constants';
 
 export default function PaymentsPage() {
   const [payments, setPayments] = useState<Payment[]>([]);
